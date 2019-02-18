@@ -21,10 +21,10 @@ SOFTWARE.
 example curl request
 
 os.system("curl https://api.smartsheet.com/2.0/reports/4320876536588164 -H
-            ""Authorization: Bearer hr3uz76quvxy56oj2v9ofdcpxo"" -H ""Accept:
+            ""Authorization: Bearer xxxxxxxxxxxxxxxxx"" -H ""Accept:
                 text/xlsx"" -o test.xlsx > /dev/null 2>&1")
     curl -k -v https://api.smartsheet.com/2.0/reports/4320876536588164 -H ""Authorization:
-        Bearer hr3uz76quvxy56oj2v9ofdcpxo"" -H ""Accept: text/xlsx"" -o 4320876536588164.xlsx
+        Bearer xxxxxxxxxxxxxxxxxx"" -H ""Accept: text/xlsx"" -o 4320876536588164.xlsx
             -D 4320876536588164.txt > /dev/null 2>&1
 '''
 from __future__ import print_function
