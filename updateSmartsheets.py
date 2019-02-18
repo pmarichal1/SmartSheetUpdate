@@ -84,6 +84,7 @@ def read_jira_import_file(jira_input_path):
     '''create a tuple list from the JIRAInputData file'''
     try:
         with open(jira_input_path + 'JIRAImportData.txt', mode='r') as jira_hdnl:
+        #with open(jira_input_path + 'JIRAImportData.txt', encoding='ISO-8859-1', mode='r') as jira_hdnl:
             reader = csv.reader(jira_hdnl, delimiter='\t')
             if sys.version_info.major < 3:
                 jira_list = map(tuple, reader)
@@ -111,6 +112,8 @@ def evaluate_row_and_build_updates(ss_client, source_row, jira_entry, column_map
     '''Find the cell and value we want to evaluate'''
     #   for jira_entry in jira_list:
     remaining_cell = get_cell_by_column_name(source_row, "Input into JIRA", column_map)
+    if remaining_cell == None:
+        return None, 0
     if remaining_cell.display_value != "true":  # Skip if already true
         # get contents of description column
         cell_data_description = get_cell_by_column_name(
@@ -129,8 +132,12 @@ def evaluate_row_and_build_updates(ss_client, source_row, jira_entry, column_map
         if cell_data_chapter == None:
             return None, 0
         chapter = cell_data_chapter.display_value
+        cell_data_summary = get_cell_by_column_name(source_row, "Summary", column_map)
+        if cell_data_summary == None:
+            return None, 0
+        summary = cell_data_summary.display_value
         # make sure the row matches the primary and description and chapter
-        if (description == jira_entry[3]) and (primary == jira_entry[18]) and (chapter == jira_entry[16]):
+        if (summary == jira_entry[2]) and (description == jira_entry[3]) and (chapter == jira_entry[16]) and (primary == jira_entry[18]):
             # Build new cell value
             new_cell = ss_client.models.Cell()
             new_cell.column_id = column_map["Input into JIRA"]
@@ -170,7 +177,9 @@ def main():
     jira_dict = {}
     jira_list_first_time = 1
     for sheet_id in ids_list:
-        jira_entry_count = 0
+        # set 2 next 2 values so that we skip the tile row on the JIRA import file
+        jira_entry_count = 1
+        jira_dict[0] = 'true'
         sheet = ss_client.Sheets.get_sheet(sheet_id)
         print("Checking Smartsheet", sheet.name)
         # Build column map for later reference - translates column names to column id
@@ -181,6 +190,8 @@ def main():
         #keep track of row ids to make sure there's no duplicate for call to smartsheets which will cause an error
         row_ids = []
         for jira_entry in jira_list:
+            if jira_entry == jira_list[0]:
+                continue
             if jira_list_first_time == 1:
                 jira_dict[jira_entry_count] = 'false'
             for row in sheet.rows:
@@ -190,10 +201,10 @@ def main():
                         rows_to_update.append(row_to_update)
                         row_ids.append(row_id)
                     else:
-                        print(Bcolors.FAIL + "Duplicate found JIRA row " + str(jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'" + " row " + str(row.row_number) + Bcolors.ENDC)
+                        print(Bcolors.FAIL + "Duplicate found in JIRA import file row " + str(jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'" + " row " + str(row.row_number) + Bcolors.ENDC)
                     matches += 1
                     jira_dict[jira_entry_count] = 'true'
-                    print(Bcolors.OKGREEN + "Found JIRA row " + str(jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'" + " row " + str(
+                    print(Bcolors.OKGREEN + "Found JIRA import file row " + str(jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'" + " row " + str(
                         row.row_number) + Bcolors.ENDC)
                     break
             jira_entry_count += 1
@@ -219,7 +230,7 @@ def main():
     for dict_index, dict_entry in jira_dict.items():
         if jira_dict[dict_index] == 'false':
             dict_count += 1
-            print(Bcolors.WARNING + "JIRA file row " + str(dict_index+1) + " not found or already 'true' in Smartsheets" + Bcolors.ENDC)
+            print(Bcolors.WARNING + "JIRA import file row " + str(dict_index+1) + " not found or already 'true' in Smartsheets" + Bcolors.ENDC)
 
     print(Bcolors.OKGREEN + "\nTotal Smartsheet Rows not Updated = " + str(dict_count) + Bcolors.ENDC)
     print(Bcolors.OKGREEN + "Total Smartsheet Rows Updated     = " + str(matches) + Bcolors.ENDC)
