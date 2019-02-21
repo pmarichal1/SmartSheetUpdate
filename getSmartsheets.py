@@ -18,14 +18,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-example curl request
-
-os.system("curl https://api.smartsheet.com/2.0/reports/4320876536588164 -H
-            ""Authorization: Bearer xxxxxxxxxxxxxxxxx"" -H ""Accept:
-                text/xlsx"" -o test.xlsx > /dev/null 2>&1")
-    curl -k -v https://api.smartsheet.com/2.0/reports/4320876536588164 -H ""Authorization:
-        Bearer xxxxxxxxxxxxxxxxxx"" -H ""Accept: text/xlsx"" -o 4320876536588164.xlsx
-            -D 4320876536588164.txt > /dev/null 2>&1
 '''
 from __future__ import print_function
 from __future__ import absolute_import
@@ -36,9 +28,10 @@ import platform
 import smartsheet
 from smartsheet import reports
 from openpyxl import load_workbook
+import colorama
 
 class Bcolors(object):
-    ''' define colors for printing '''
+    '''color pallette for print statements'''
     HEADER = '\033[96m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -154,6 +147,10 @@ def convert_downloaded_files_to_tab_delimited(program_input_path):
                     my_row = []
                     for cell in row:
                         value = cell.internal_value
+                        result = type (value) is str
+                        if result:
+                            if '\n' in value:
+                                value = value.replace('\n',' ')
                         result = type (value) is float
                         if result:
                             value = int(value)
@@ -167,11 +164,12 @@ def convert_downloaded_files_to_tab_delimited(program_input_path):
             tab_text.close()
 
 
-def main():
-    program_input_path = sys.argv[1]
+def getSmartsheetMain(program_input_path):
+    colorama.init()
+    #program_input_path = sys.argv[1]
     print ("Python Version is " + platform.python_version())
     print ("System Version is " + platform.platform())
-    ''' get files from Smartsheet as .xlsx and covert them to tab delimited .txt files'''
+    #get files from Smartsheet as .xlsx and covert them to tab delimited .txt files
     access_token = get_access_token(program_input_path)
     smartsheet_ids = get_smartsheet_ids(program_input_path)
     ss_client = smartsheet.Smartsheet(access_token)
@@ -182,7 +180,7 @@ def main():
     #process_downloaded_files(smartsheet_ids)
     convert_downloaded_files_to_tab_delimited(program_input_path)
     print ("All Smartsheets Downloaded")
-
+    colorama.deinit()
 
 if __name__ == "__main__":
-    main()
+    getSmartsheetMain(program_input_path)
