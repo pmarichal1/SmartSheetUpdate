@@ -43,25 +43,32 @@ class Bcolors(object):
 
 
 def get_smartsheets(INPUT_CODE_PATH, INPUT_PROGRAMINPUT_PATH):
+    '''call getSmaartheet module'''
     getSmartsheetMain(INPUT_PROGRAMINPUT_PATH)
 
 
 def create_one_jira_import_file(MAC_OR_WIN, INPUT_CODE_PATH):
     ''' create JIRA single import file '''
     if MAC_OR_WIN == '0':
-        os.system(INPUT_CODE_PATH + "macJIRAOne")
+        temp_path = '"' + INPUT_CODE_PATH + "macJIRAOne" + '"'
+        os.system(temp_path)
     else:
-        os.system(INPUT_CODE_PATH + "winJIRAOne.bat")
+        temp_path = INPUT_CODE_PATH + "winJIRAOne.bat"
+        os.system('"' + temp_path + '"')
 
 
 def create_multi_jira_import_files(MAC_OR_WIN, INPUT_CODE_PATH):
-    ''' create JIRA multiple import files '''
+    ''' create JIRA multiple import files'''
     if MAC_OR_WIN == '0':
-        os.system(INPUT_CODE_PATH + "macJIRAmultiple")
+        temp_path = '"' + INPUT_CODE_PATH + "macJIRAmultiple" + '"'
+        os.system(temp_path)  
     else:
-        os.system(INPUT_CODE_PATH + "winJIRAmultiple.bat")        
+        temp_path = INPUT_CODE_PATH + "winJIRAmultiple.bat"
+        os.system('"' + temp_path + '"')
 
-def update_smartsheets(INPUT_CODE_PATH, INPUT_PROGRAMINPUT_PATH, INPUT_JIRAINPUT_PATH):
+
+
+def update_smartsheets(INPUT_PROGRAMINPUT_PATH, INPUT_JIRAINPUT_PATH):
     ''' update smartsheet in server '''
     while True:
         print("Are you sure you want to update Smartsheets?")
@@ -105,6 +112,7 @@ def main():
     INPUT_JIRAINPUT_PATH = sys.argv[4]
     print("Python Version from is " + platform.python_version())
     print("System Version is " + platform.platform())
+    print("Sotfware Version is V3.2.0")
 
     while True:
         print_menu()  ## Displays menu
@@ -127,7 +135,7 @@ def main():
         elif choice == 2:
             create_one_jira_import_file(MAC_OR_WIN, INPUT_CODE_PATH)
         elif choice == 3:
-            update_smartsheets(INPUT_CODE_PATH, INPUT_PROGRAMINPUT_PATH, INPUT_JIRAINPUT_PATH)
+            update_smartsheets(INPUT_PROGRAMINPUT_PATH, INPUT_JIRAINPUT_PATH)
         elif choice == 4:
             colorama.deinit()
             break
