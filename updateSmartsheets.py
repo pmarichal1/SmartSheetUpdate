@@ -55,6 +55,7 @@ def get_access_token(program_input_path):
     try:
         token_hndl = open(program_input_path + "accessToken.txt", 'r')
         access_token = token_hndl.readline()
+        access_token = access_token.rstrip()
         token_hndl.close()
         return access_token
     except IOError:
@@ -71,7 +72,7 @@ def get_smartsheet_ids(program_input_path):
         # create list of IDs
         ids_list = []
         for line in line_list:
-            ids_list.append(line.strip())
+            ids_list.append(line.rstrip())
         ss_hndl.close()
         return ids_list
     except IOError:
@@ -110,7 +111,7 @@ def get_cell_by_column_name(row_id, column_name, column_map):
         return 0
 
 
-def evaluate_row_and_build_updates(ss_client, source_row, jira_entry, column_map):
+def evaluate_row_and_build_updates(ss_client, source_row, jira_entry, column_map, empty_dict, sheet_name):
     '''Find the cell and value we want to evaluate'''
     #   for "Input into JIRA" value from the cell
     cell_data_checkbox = get_cell_by_column_name(source_row, "Input into JIRA", column_map)
@@ -143,7 +144,12 @@ def evaluate_row_and_build_updates(ss_client, source_row, jira_entry, column_map
         if cell_data_summary == None or cell_data_summary == 0:
             return None, 0
         summary = cell_data_summary.display_value
-
+        if summary != '[No Errors to Report]':
+            if (summary == None) or (chapter == None) or (primary == None) or (description == None):
+                if( source_row.row_number, sheet_name) not in empty_dict:
+                    empty_dict[source_row.row_number, sheet_name] = 1
+                else:
+                    empty_dict[source_row.row_number, sheet_name] += 1
         # make sure the row matches the primary and description and chapter
         if (summary == jira_entry[2]) and (description == jira_entry[3]) and (chapter == jira_entry[16]) and (primary == jira_entry[18]):
             # Build new cell value
@@ -185,18 +191,20 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
     # but it's more convenient to refer to column names. Store a map here
     # get a list of Smartsheet IDs we will use to update sheets
     ids_list = get_smartsheet_ids(program_input_path)
-    #let's get the data from the JIRA import file so we can update the Smartsheets
+    # let's get the data from the JIRA import file so we can update the Smartsheets
     jira_list = read_jira_import_file(jira_input_path)
     # create a dictionary so we can keep track of of the JIRA entries we found a match for
     jira_dict = {}
-    #we only want to create this above dictionary the first time thru but not every interation thru smartsheet sheets
+    # keep track of row and sheetname for empty cells
+    empty_cell = {}
+    # only want to create this above dictionary the first time thru but not every interation thru smartsheet sheets
     jira_list_first_time = 1
-    #we are going to walk thru all entries in the JIRA import file
+    # are going to walk thru all entries in the JIRA import file
     for sheet_id in ids_list:
         # set the next 2 values so that we skip the tile row on the JIRA import file
         jira_entry_count = 1
         jira_dict[0] = 'true'
-        #get the sheet info from Smartsheets
+        # get the sheet info from Smartsheets
         sheet = ss_client.Sheets.get_sheet(sheet_id)
         print("Checking Smartsheet", sheet.name)
         # Build column map for later reference - translates column names to column id
@@ -204,30 +212,30 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
             column_map[column.title] = column.id
         # Accumulate rows needing update here. we will do a bulk update to Smartsheeets
         rows_to_update = []
-        #keep track of row ids to make sure there's no duplicate for call to smartsheets which will cause an error
+        # keep track of row ids to make sure there's no duplicate for call to smartsheets which will cause an error
         row_ids = []
-        #walk the list of JIRA entries
+        # walk the list of JIRA entries
         for jira_entry in jira_list:
-            #dont; try to lookup first row since it only contains the column headers
+            # don't try to lookup first row since it only contains the column headers
             if jira_entry == jira_list[0]:
                 continue
-            #if it's the first time thru the JIRA list let setup the dictionary to false until we find a match
+            # if it's the first time thru the JIRA list let setup the dictionary to false until we find a match
             if jira_list_first_time == 1:
                 jira_dict[jira_entry_count] = 'false'
-            #walk all the rows in a sheet
+            # walk all the rows in a sheet
             for row in sheet.rows:
-                row_to_update, row_id = evaluate_row_and_build_updates(ss_client, row, jira_entry, column_map)
+                row_to_update, row_id = evaluate_row_and_build_updates(ss_client, row, jira_entry, column_map, empty_cell, sheet.name)
                 # we found a match then build a list of rows that we will eventually upload to Smartsheets
                 if row_to_update != None:
                     if row_id not in row_ids:
                         rows_to_update.append(row_to_update)
                         row_ids.append(row_id)
+                        matches += 1
+                        print(Bcolors.OKGREEN + "Found JIRA import file row " + str(jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'"
+                              + " row " + str(row.row_number) + Bcolors.ENDC)
                     else:
                         print(Bcolors.FAIL + "Duplicate found in JIRA import file row " + str(jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'" + " row " + str(row.row_number) + Bcolors.ENDC)
-                    matches += 1
                     jira_dict[jira_entry_count] = 'true'
-                    print(Bcolors.OKGREEN + "Found JIRA import file row " + str(jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'" + " row " + str(
-                        row.row_number) + Bcolors.ENDC)
                     break
             jira_entry_count += 1
         # Finally, write updated cells back to Smartsheet in bulk
@@ -253,8 +261,9 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
     for dict_index, dict_entry in jira_dict.items():
         if jira_dict[dict_index] == 'false':
             dict_count += 1
-            print(Bcolors.WARNING + "JIRA import file row " + str(dict_index+1) + " not found or already checked in Smartsheets" + Bcolors.ENDC)
-
+            print(Bcolors.WARNING + "JIRA import file row " + "'" + str(dict_index+1)+ "'" + " not found or already checked in Smartsheets" + Bcolors.ENDC)
+    for key, val in empty_cell.items():
+        print(Bcolors.WARNING + f"Smartsheet '{key[1]}' empty cell in row '{key[0]}'" + Bcolors.ENDC)
     print(Bcolors.OKGREEN + "\nTotal Smartsheet Rows not Updated = " + str(dict_count) + Bcolors.ENDC)
     print(Bcolors.OKGREEN + "Total Smartsheet Rows Updated     = " + str(matches) + Bcolors.ENDC)
     colorama.deinit()
