@@ -50,7 +50,7 @@ def get_smartsheet_ids(program_input_path):
         #strip off newlines
         ids_list = []
         for line in line_list:
-            ids_list.append(line.strip())
+            ids_list.append(line.rstrip())
         ss_hndl.close()
         return ids_list
     except IOError:
@@ -64,6 +64,7 @@ def get_access_token(program_input_path):
     try:
         token_hndl = open(program_input_path + "accessToken.txt", 'r')
         access_token = token_hndl.readline()
+        access_token = access_token.rstrip()
         token_hndl.close()
         return access_token
     except IOError:
