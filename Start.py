@@ -30,7 +30,7 @@ import colorama
 from getSmartsheets import getSmartsheetMain
 from updateSmartsheets import updateSmartsheetMain
 
-class Bcolors(object):
+class Bcolors():
     '''color pallette for print statements'''
     HEADER = '\033[96m'
     OKBLUE = '\033[94m'
@@ -42,49 +42,44 @@ class Bcolors(object):
     FAIL = '\033[91m'
 
 
-def get_smartsheets(INPUT_CODE_PATH, INPUT_PROGRAMINPUT_PATH):
+def get_smartsheets(input_programinput_path):
     '''call getSmaartheet module'''
-    getSmartsheetMain(INPUT_PROGRAMINPUT_PATH)
+    getSmartsheetMain(input_programinput_path)
 
 
-def create_one_jira_import_file(MAC_OR_WIN, INPUT_CODE_PATH):
+def create_one_jira_import_file(mac_or_win, input_code_path):
     ''' create JIRA single import file '''
-    if MAC_OR_WIN == '0':
-        temp_path = '"' + INPUT_CODE_PATH + "macJIRAOne" + '"'
+    if mac_or_win == '0':
+        temp_path = '"' + input_code_path + "macJIRAOne" + '"'
         os.system(temp_path)
     else:
-        temp_path = INPUT_CODE_PATH + "winJIRAOne.bat"
+        temp_path = input_code_path + "winJIRAOne.bat"
         os.system('"' + temp_path + '"')
 
 
-def create_multi_jira_import_files(MAC_OR_WIN, INPUT_CODE_PATH):
+def create_multi_jira_import_files(mac_or_win, input_code_path):
     ''' create JIRA multiple import files'''
-    if MAC_OR_WIN == '0':
-        temp_path = '"' + INPUT_CODE_PATH + "macJIRAmultiple" + '"'
-        os.system(temp_path)  
+    if mac_or_win == '0':
+        temp_path = '"' + input_code_path + "macJIRAmultiple" + '"'
+        os.system(temp_path) 
     else:
-        temp_path = INPUT_CODE_PATH + "winJIRAmultiple.bat"
+        temp_path = input_code_path + "winJIRAmultiple.bat"
         os.system('"' + temp_path + '"')
 
 
 
-def update_smartsheets(INPUT_PROGRAMINPUT_PATH, INPUT_JIRAINPUT_PATH):
+def update_smartsheets(input_programinput_path, input_jirainput_path):
     ''' update smartsheet in server '''
     while True:
         print("Are you sure you want to update Smartsheets?")
         try:
-            # Note: Python 2.x users should use raw_input, the equivalent of 3.x's input
-            if sys.version_info.major < 3:
-                choice = str(raw_input("yes or no: "))
-            else:
-                choice = str(input("yes or no: "))
+            choice = str(input("yes or no: "))
         except ValueError:
             print("Not a valid selection")
         if choice == 'yes':
             print(Bcolors.OKGREEN + "Updating Smartsheets" + Bcolors.ENDC)
-            updateSmartsheetMain(INPUT_PROGRAMINPUT_PATH, INPUT_JIRAINPUT_PATH)
+            updateSmartsheetMain(input_programinput_path, input_jirainput_path)
             return
-
         elif choice == 'no':
             print(Bcolors.OKGREEN  + "Smartsheets not updated" + Bcolors.ENDC)
             return
@@ -106,22 +101,18 @@ def main():
     ''' main loop to get us started'''
     colorama.init()
     # 0 to invoke mac script or 1 for windows
-    MAC_OR_WIN = sys.argv[1]
-    INPUT_CODE_PATH = sys.argv[2]
-    INPUT_PROGRAMINPUT_PATH = sys.argv[3]
-    INPUT_JIRAINPUT_PATH = sys.argv[4]
+    mac_or_win = sys.argv[1]
+    input_code_path = sys.argv[2]
+    input_programinput_path = sys.argv[3]
+    input_jirainput_path = sys.argv[4]
     print("Python Version from is " + platform.python_version())
     print("System Version is " + platform.platform())
-    print("Sotfware Version is V3.2.0")
+    print("Sotfware Version is V3.3.0")
 
     while True:
         print_menu()  ## Displays menu
         try:
-            # Note: Python 2.x users should use raw_input, the equivalent of 3.x's input
-            if sys.version_info.major < 3:
-                choice = int(raw_input("Enter your choice [1-4]: "))
-            else:
-                choice = int(input("Enter your choice [1-4]: "))
+            choice = int(input("Enter your choice [1-4]: "))
         except ValueError:
             print("Not a valid number selection")
             # better try again... Return to the start of the loop
@@ -131,11 +122,11 @@ def main():
             continue
 
         if choice == 1:
-            get_smartsheets(INPUT_CODE_PATH, INPUT_PROGRAMINPUT_PATH)
+            get_smartsheets(input_programinput_path)
         elif choice == 2:
-            create_one_jira_import_file(MAC_OR_WIN, INPUT_CODE_PATH)
+            create_one_jira_import_file(mac_or_win, input_code_path)
         elif choice == 3:
-            update_smartsheets(INPUT_PROGRAMINPUT_PATH, INPUT_JIRAINPUT_PATH)
+            update_smartsheets(input_programinput_path, input_jirainput_path)
         elif choice == 4:
             colorama.deinit()
             break
