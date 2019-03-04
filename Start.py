@@ -27,8 +27,10 @@ import platform
 import sys
 import os
 import colorama
+import time
 from getSmartsheets import getSmartsheetMain
 from updateSmartsheets import updateSmartsheetMain
+from createJiraImport import create_jira_import_main
 
 class Bcolors():
     '''color pallette for print statements'''
@@ -40,32 +42,6 @@ class Bcolors():
     UNDERLINE = '\033[4m'
     WARNING = '\033[93m'
     FAIL = '\033[91m'
-
-
-def get_smartsheets(input_programinput_path):
-    '''call getSmaartheet module'''
-    getSmartsheetMain(input_programinput_path)
-
-
-def create_one_jira_import_file(mac_or_win, input_code_path):
-    ''' create JIRA single import file '''
-    if mac_or_win == '0':
-        temp_path = '"' + input_code_path + "macJIRAOne" + '"'
-        os.system(temp_path)
-    else:
-        temp_path = input_code_path + "winJIRAOne.bat"
-        os.system('"' + temp_path + '"')
-
-
-def create_multi_jira_import_files(mac_or_win, input_code_path):
-    ''' create JIRA multiple import files'''
-    if mac_or_win == '0':
-        temp_path = '"' + input_code_path + "macJIRAmultiple" + '"'
-        os.system(temp_path) 
-    else:
-        temp_path = input_code_path + "winJIRAmultiple.bat"
-        os.system('"' + temp_path + '"')
-
 
 
 def update_smartsheets(input_programinput_path, input_jirainput_path):
@@ -107,7 +83,9 @@ def main():
     input_jirainput_path = sys.argv[4]
     print("Python Version from is " + platform.python_version())
     print("System Version is " + platform.platform())
-    print("Sotfware Version is V3.3.0")
+    print("Sotfware Version is V4.0.0")
+    localtime = time.asctime(time.localtime(time.time()))
+    print("Local current time :", localtime)
 
     while True:
         print_menu()  ## Displays menu
@@ -122,9 +100,9 @@ def main():
             continue
 
         if choice == 1:
-            get_smartsheets(input_programinput_path)
+            getSmartsheetMain(input_programinput_path)
         elif choice == 2:
-            create_one_jira_import_file(mac_or_win, input_code_path)
+            create_jira_import_main(input_programinput_path, input_jirainput_path)
         elif choice == 3:
             update_smartsheets(input_programinput_path, input_jirainput_path)
         elif choice == 4:
