@@ -20,9 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
+#from __future__ import print_function
+#from __future__ import unicode_literals
+#from __future__ import absolute_import
 import platform
 import sys
 import os
@@ -76,11 +76,8 @@ def print_menu():
 def main():
     ''' main loop to get us started'''
     colorama.init()
-    # 0 to invoke mac script or 1 for windows
-    mac_or_win = sys.argv[1]
-    input_code_path = sys.argv[2]
-    input_programinput_path = sys.argv[3]
-    input_jirainput_path = sys.argv[4]
+    input_programinput_path = sys.argv[1]
+    input_jirainput_path = sys.argv[2]
     print("Python Version from is " + platform.python_version())
     print("System Version is " + platform.platform())
     print("Sotfware Version is V4.0.0")

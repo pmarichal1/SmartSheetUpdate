@@ -19,8 +19,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
-from __future__ import print_function
-from __future__ import absolute_import
+#from __future__ import print_function
+#from __future__ import absolute_import
 import sys
 import os
 import csv
@@ -42,35 +42,25 @@ class Bcolors():
     FAIL = '\033[91m'
 
 
-def get_smartsheet_ids(program_input_path):
-    '''go get the Smartsheet IDs we want to download'''
+def get_file_info(filename):
+    '''go get the file information'''
     try:
-        ss_hndl = open(program_input_path + "smartsheetGetIDs.txt", 'r')
+        ss_hndl = open(filename, 'r')
+    except FileNotFoundError as e:
+        print(Bcolors.FAIL + f"File not found {filename}" + Bcolors.ENDC)
+        sys.exit(1)
+    except Exception as e:
+        errno, strerror = e.args
+        print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {filename}" + Bcolors.ENDC)
+        sys.exit(1)
+    else:
         line_list = ss_hndl.readlines()
         #strip off newlines
-        ids_list = []
+        info_list = []
         for line in line_list:
-            ids_list.append(line.rstrip())
+            info_list.append(line.rstrip())
         ss_hndl.close()
-        return ids_list
-    except IOError:
-        print(Bcolors.FAIL + 'No such file: %s' % program_input_path +
-              'smartsheetGetIDs.txt' + Bcolors.ENDC)
-        sys.exit(1)
-
-
-def get_access_token(program_input_path):
-    '''go get the access token we need for CURL request'''
-    try:
-        token_hndl = open(program_input_path + "accessToken.txt", 'r')
-        access_token = token_hndl.readline()
-        access_token = access_token.rstrip()
-        token_hndl.close()
-        return access_token
-    except IOError:
-        print(Bcolors.FAIL + 'No such file: %s' % program_input_path +
-              'accessToken.txt' + Bcolors.ENDC)
-        sys.exit(1)
+        return info_list
 
 
 def convert_downloaded_files_to_tab_delimited(program_input_path):
@@ -84,8 +74,14 @@ def convert_downloaded_files_to_tab_delimited(program_input_path):
             print('Converting file ' + Bcolors.HEADER + filename +
                   '.xlsx' + Bcolors.ENDC + ' to Tab delimited ' +
                   Bcolors.OKGREEN + filename + '.txt' + Bcolors.ENDC)
-            tab_text = open(program_input_path + tab_filename, 'w')
             try:
+                tab_text = open(program_input_path + tab_filename, 'w')
+            except Exception as e:
+                errno, strerror = e.args
+                print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {program_input_path}{tab_text}" + Bcolors.ENDC)
+                sys.exit(1)
+            else:
+                txt_writer = csv.writer(tab_text, delimiter='\t', lineterminator='\n')  # writefile
                 for row in first_sheet.iter_rows():
                     my_row = []
                     for cell in row:
@@ -98,13 +94,8 @@ def convert_downloaded_files_to_tab_delimited(program_input_path):
                         if result:
                             value = int(value)
                         my_row.append(value)
-                    txt_writer = csv.writer(tab_text, delimiter='\t') #writefile
                     txt_writer.writerow(my_row)   #write the lines to file`
-            except IOError:
-                print(Bcolors.FAIL + 'No such file: %s' % program_input_path + 
-                      tab_text + Bcolors.ENDC)
-                sys.exit(1)
-            tab_text.close()
+                tab_text.close()
 
 
 def getSmartsheetMain(program_input_path):
@@ -114,11 +105,19 @@ def getSmartsheetMain(program_input_path):
     print("Python Version is " + platform.python_version())
     print("System Version is " + platform.platform())
     #get files from Smartsheet as .xlsx and covert them to tab delimited .txt files
-    access_token = get_access_token(program_input_path)
-    smartsheet_ids = get_smartsheet_ids(program_input_path)
+    filename = program_input_path + "accessToken.txt"
+    #access_token = get_access_token(filename)
+    access_token = get_file_info(filename)
+    access_token = access_token[0]
+    filename = program_input_path + "smartsheetGetIDs.txt"
+    smartsheet_ids = get_file_info(filename)
     ss_client = smartsheet.Smartsheet(access_token)
     for ids in smartsheet_ids:
-        ss_client.Reports.get_report_as_excel(ids, program_input_path)
+        try:
+            ss_client.Reports.get_report_as_excel(ids, program_input_path)
+        except Exception:
+            print(f"You Token is not valid in accessToken.txt")
+            sys.exit(1)
     convert_downloaded_files_to_tab_delimited(program_input_path)
     print("All Smartsheets Downloaded")
     colorama.deinit()

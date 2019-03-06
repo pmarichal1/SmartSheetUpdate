@@ -19,26 +19,20 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
+#from __future__ import print_function
+#from __future__ import unicode_literals
+#from __future__ import absolute_import
 import sys
 import csv
 import platform
 #import logging
+import time
 import smartsheet
 from smartsheet import sheets
-import time
 import colorama
 
-# hack to fix problem with reading Unicode from smartsheets
-if sys.version_info.major < 3:
-    import sys
-    reload(sys)
-    sys.setdefaultencoding('utf8')
-    print("Fixing Unicode issue with python 2.x")
 
-class Bcolors(object):
+class Bcolors():
     '''color pallette for print statements'''
     HEADER = '\033[96m'
     OKBLUE = '\033[94m'
@@ -50,52 +44,43 @@ class Bcolors(object):
     FAIL = '\033[91m'
 
 
-def get_access_token(program_input_path):
-    '''go get the access token we need for smartsheet SDK request'''
-    try:
-        token_hndl = open(program_input_path + "accessToken.txt", 'r')
-        access_token = token_hndl.readline()
-        access_token = access_token.rstrip()
-        token_hndl.close()
-        return access_token
-    except IOError:
-        print(Bcolors.FAIL + "No such file:" +
-              program_input_path + "accessToken.txt" + Bcolors.ENDC)
-        sys.exit(1)
-
-
-def get_smartsheet_ids(program_input_path):
+def get_file_info(filename):
     '''# go get the Smartsheet IDs we want to download'''
     try:
-        ss_hndl = open(program_input_path + "smartsheetUpdateIDs.txt", 'r')
-        line_list = ss_hndl.readlines()
-        # create list of IDs
-        ids_list = []
-        for line in line_list:
-            ids_list.append(line.rstrip())
-        ss_hndl.close()
-        return ids_list
-    except IOError:
-        print(Bcolors.FAIL + "No such file:" +
-              program_input_path + "smartsheetUpdateIDs.txt" + Bcolors.ENDC)
+        ss_hndl = open(filename, 'r')
+    except FileNotFoundError as e:
+        print(Bcolors.FAIL + f"File not found {filename}" + Bcolors.ENDC)
         sys.exit(1)
+    except Exception as e:
+        errno, strerror = e.args
+        print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {filename}" + Bcolors.ENDC)
+        sys.exit(1)
+    else:
+        line_list = ss_hndl.readlines()
+        # strip off newlines
+        info_list = []
+        for line in line_list:
+            info_list.append(line.rstrip())
+        ss_hndl.close()
+        return info_list
 
 
-def read_jira_import_file(jira_input_path):
+def read_jira_import_file(filename):
     '''create a tuple list from the JIRAInputData file'''
     try:
-        with open(jira_input_path + 'JIRAImportData.txt', mode='r') as jira_hdnl:
-        #with open(jira_input_path + 'JIRAImportData.txt', encoding='ISO-8859-1', mode='r') as jira_hdnl:
-            reader = csv.reader(jira_hdnl, delimiter='\t')
-            if sys.version_info.major < 3:
-                jira_list = map(tuple, reader)
-            else:
-                jira_list = list(map(tuple, reader))
-            jira_hdnl.close()
-            return jira_list
-    except IOError:
-        print(Bcolors.FAIL + "No such file:" + jira_input_path + 'JIRAImportData.txt' + Bcolors.ENDC)
+        jira_hdnl = open(filename, mode='r')
+    except FileNotFoundError:
+        print(Bcolors.FAIL + f"File not found {filename}" + Bcolors.ENDC)
         sys.exit(1)
+    except Exception as e:
+        errno, strerror = e.args
+        print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {filename}" + Bcolors.ENDC)
+        sys.exit(1)
+    else:
+        reader = csv.reader(jira_hdnl, delimiter='\t')
+        jira_list = list(map(tuple, reader))
+        jira_hdnl.close()
+        return jira_list
 
 
 def get_cell_by_column_name(row_id, column_name, column_map):
@@ -103,7 +88,7 @@ def get_cell_by_column_name(row_id, column_name, column_map):
     try:
         # make sure the key we are looking up exists
         column_id = column_map[column_name]
-        if row_id.get_column(column_id) == None:
+        if row_id.get_column(column_id) is None:
             print(Bcolors.FAIL + f"Column name '{column_name}' returns None" + Bcolors.ENDC)
         return row_id.get_column(column_id)
     except KeyError:
@@ -115,43 +100,44 @@ def evaluate_row_and_build_updates(ss_client, source_row, jira_entry, column_map
     '''Find the cell and value we want to evaluate'''
     #   for "Input into JIRA" value from the cell
     cell_data_checkbox = get_cell_by_column_name(source_row, "Input into JIRA", column_map)
-    if cell_data_checkbox == None or cell_data_checkbox == 0:
+    if (cell_data_checkbox is None) or (cell_data_checkbox == 0):
         return None, 0
     checkbox = cell_data_checkbox.value
-    if checkbox != True:  # Skip if already true
+    if checkbox is not True:  # Skip if already true
         # get contents of description column
-        cell_data_description = get_cell_by_column_name(
-            source_row, "Additional description if necessary", column_map)
+        cell_data_description = get_cell_by_column_name(source_row, "Additional description if necessary", column_map)
         # get "Additional description if necessary" value from cell
-        if cell_data_description == None or cell_data_description == 0:
+        if cell_data_description is None or cell_data_description == 0:
             return None, 0
         description = cell_data_description.display_value
 
         # get "JOB #" value from cell
         cell_data_job = get_cell_by_column_name(source_row, "Job #", column_map)
-        if cell_data_job == None or cell_data_job == 0:
+        if cell_data_job is None or cell_data_job == 0:
             return None, 0
         primary = cell_data_job.display_value
 
         # get "chapter #s" value from cell
         cell_data_chapter = get_cell_by_column_name(source_row, "Chapter # or #s", column_map)
-        if cell_data_chapter == None or cell_data_chapter == 0:
+        if cell_data_chapter is None or cell_data_chapter == 0:
             return None, 0
         chapter = cell_data_chapter.display_value
 
         # get "Summary" value from cell
         cell_data_summary = get_cell_by_column_name(source_row, "Summary", column_map)
-        if cell_data_summary == None or cell_data_summary == 0:
+        if cell_data_summary is None or cell_data_summary == 0:
             return None, 0
         summary = cell_data_summary.display_value
         if summary != '[No Errors to Report]':
-            if (summary == None) or (chapter == None) or (primary == None) or (description == None):
-                if( source_row.row_number, sheet_name) not in empty_dict:
+            if (summary is None) or (chapter is None) \
+                or (primary is None) or (description is None):
+                if(source_row.row_number, sheet_name) not in empty_dict:
                     empty_dict[source_row.row_number, sheet_name] = 1
                 else:
                     empty_dict[source_row.row_number, sheet_name] += 1
         # make sure the row matches the primary and description and chapter
-        if (summary == jira_entry[2]) and (description == jira_entry[3]) and (chapter == jira_entry[16]) and (primary == jira_entry[18]):
+        if (summary == jira_entry[2]) and (description == jira_entry[3]) \
+            and (chapter == jira_entry[16]) and (primary == jira_entry[18]):
             # Build new cell value
             new_cell = ss_client.models.Cell()
             new_cell.column_id = column_map["Input into JIRA"]
@@ -179,7 +165,9 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
     #keep track of how many update matches we find
     matches = 0
     print("")
-    access_token = get_access_token(program_input_path)
+    filename = program_input_path + "accessToken.txt"
+    access_token = get_file_info(filename)
+    access_token =access_token[0]
     # Initialize client
     ss_client = smartsheet.Smartsheet(access_token)
     # Make sure we don't miss any error
@@ -190,9 +178,11 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
     # The API identifies columns by Id,
     # but it's more convenient to refer to column names. Store a map here
     # get a list of Smartsheet IDs we will use to update sheets
-    ids_list = get_smartsheet_ids(program_input_path)
+    filename = program_input_path + "smartsheetUpdateIDs.txt"
+    ids_list = get_file_info(filename)
     # let's get the data from the JIRA import file so we can update the Smartsheets
-    jira_list = read_jira_import_file(jira_input_path)
+    filename = jira_input_path + 'JIRAImportData.txt'
+    jira_list = read_jira_import_file(filename)
     # create a dictionary so we can keep track of of the JIRA entries we found a match for
     jira_dict = {}
     # keep track of row and sheetname for empty cells
@@ -205,7 +195,11 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
         jira_entry_count = 1
         jira_dict[0] = 'true'
         # get the sheet info from Smartsheets
-        sheet = ss_client.Sheets.get_sheet(sheet_id)
+        try:
+            sheet = ss_client.Sheets.get_sheet(sheet_id)
+        except Exception:
+            print(f"Possible invalid sheet ID in smartsheetUpdateIDs.txt")
+            sys.exit(1)
         print("Checking Smartsheet", sheet.name)
         # Build column map for later reference - translates column names to column id
         for column in sheet.columns:
@@ -226,7 +220,7 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
             for row in sheet.rows:
                 row_to_update, row_id = evaluate_row_and_build_updates(ss_client, row, jira_entry, column_map, empty_cell, sheet.name)
                 # we found a match then build a list of rows that we will eventually upload to Smartsheets
-                if row_to_update != None:
+                if row_to_update is not None:
                     if row_id not in row_ids:
                         rows_to_update.append(row_to_update)
                         row_ids.append(row_id)
@@ -245,7 +239,7 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
                 result = ss_client.Sheets.update_rows(sheet_id, rows_to_update)
                 #setup to do retries in case we hit the rate limit
                 if result.result_code != 0:
-                    print(Bcolors.FAIL + "Error updating Smartsheet " + sheet.name + "delaying for 1 minute before retry" + Bcolors.ENDC )
+                    print(Bcolors.FAIL + "Error updating Smartsheet " + sheet.name + "delaying for 1 minute before retry" + Bcolors.ENDC)
                     retry = retry - 1
                     time.sleep(60)
                 else:
@@ -261,7 +255,8 @@ def updateSmartsheetMain(program_input_path, jira_input_path):
     for dict_index, dict_entry in jira_dict.items():
         if jira_dict[dict_index] == 'false':
             dict_count += 1
-            print(Bcolors.WARNING + "JIRA import file row " + "'" + str(dict_index+1)+ "'" + " not found or already checked in Smartsheets" + Bcolors.ENDC)
+            print(Bcolors.WARNING + "JIRA import file row " + "'" +
+                  str(dict_index+1)+ "'" + " not found or already checked in Smartsheets" + Bcolors.ENDC)
     for key, val in empty_cell.items():
         print(Bcolors.WARNING + f"Smartsheet '{key[1]}' empty cell in row '{key[0]}'" + Bcolors.ENDC)
     print(Bcolors.OKGREEN + "\nTotal Smartsheet Rows not Updated = " + str(dict_count) + Bcolors.ENDC)
