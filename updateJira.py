@@ -95,11 +95,11 @@ def create_jira_issue(jira, jira_list, jira_update_list):
     final_map = {"Project": 0, "Issue Type": 1, "Summary": 2, "Description": 3, "Epic Link": 4, "Severity": 5,
                  "Reporter": 6, "Found in Environment": 7, "Found in Phase": 8, "Labels": 9, "Priority": 10,
                  "Activity": 11, "Custom1": 12, "Custom2": 13, "Custom3": 14, "Custom4": 15, "Custom5": 16,
-                 "Edition": 17, "Primary": 18, "Title": 19}
+                 "Edition": 17, "Job #": 18, "Title": 19}
     del jira_list[0]
     # change next line to 1 for production
     # TODO
-    production = 0
+    production = False
     entry_index = 1
     for line in jira_list:
         issue_entry = {}
@@ -124,16 +124,16 @@ def create_jira_issue(jira, jira_list, jira_update_list):
         issue_entry.update({'customfield_10203': line[get_index_by_column_name("Custom5", final_map)]})
         if production:
             issue = jira.create_issue(fields=issue_entry)
-            print(Bcolors.OKGREEN + f"{entry_index} - Created JIRA issue = '{issue}' Reporter = '{line[get_index_by_column_name('Reporter', final_map)]}' Primary = '{line[get_index_by_column_name('Primary', final_map)]}' Summary = '{line[get_index_by_column_name('Summary', final_map)]}'" + Bcolors.ENDC)
+            print(Bcolors.OKGREEN + f"{entry_index} - Created JIRA issue = '{issue}' Reporter = '{line[get_index_by_column_name('Reporter', final_map)]}' Job # = '{line[get_index_by_column_name('Job #', final_map)]}' Summary = '{line[get_index_by_column_name('Summary', final_map)]}'" + Bcolors.ENDC)
             jira.transition_issue(issue, 'Fixed', fields={'customfield_13831': {'value': 'Operator Error'}})
-            print(Bcolors.OKGREEN + f"{entry_index} - Changed JIRA issue {issue} to Fixed " + Bcolors.ENDC)
+            print(Bcolors.OKGREEN + f"   Changed Workflow to Fixed " + Bcolors.ENDC)
             jira.transition_issue(issue, 'Close')
-            print(Bcolors.OKGREEN + f"{entry_index} - Changed JIRA issue {issue} to Closed " + Bcolors.ENDC)
+            print(Bcolors.OKGREEN + f"     Changed Workflow to Closed " + Bcolors.ENDC)
         else:
-            print(Bcolors.OKGREEN + f"{entry_index} - Emulating - Created JIRA issue = 'QUA-{entry_index}',  Reporter = '{line[get_index_by_column_name('Reporter', final_map)]}'" + Bcolors.ENDC)
-            print(Bcolors.OKGREEN + f"{entry_index} - Emulating - Changed JIRA issue = 'QUA-{entry_index}' to Fixed " + Bcolors.ENDC)
-            print(Bcolors.OKGREEN + f"{entry_index} - Emulating - Changed JIRA issue = 'QUA-{entry_index}' to Closed " + Bcolors.ENDC)
-        jira_update_list.append(f"{entry_index} - Created JIRA issue = 'QUA-{entry_index}'")
+            print(Bcolors.OKGREEN + f"{entry_index} Created JIRA issue = 'QUA-{entry_index}', - Emulated - Reporter = '{line[get_index_by_column_name('Reporter', final_map)]}'" + Bcolors.ENDC)
+            print(Bcolors.OKGREEN + f"   Changed Workflow to Fixed - Emulated -" + Bcolors.ENDC)
+            print(Bcolors.OKGREEN + f"     Changed Workflow to Closed - Emulated -" + Bcolors.ENDC)
+        jira_update_list.append(f"{entry_index} - Created JIRA issue = 'QUA-{entry_index}', then Fixed and Closed it")
         time.sleep(1)
         entry_index += 1
         if not production:
@@ -151,7 +151,7 @@ def get_all_open_jira_issues(jira, username):
         start = initial*size
         issues = jira.search_issues('project=CSC_Pearson_Quality and status != Closed and type=Bug', start, size)
         for issue in issues:
-            if (str(issue.fields.status) != 'Open') and (issue.fields.creator.name == username):
+            if (str(issue.fields.status) != 'Open'):
                 print(Bcolors.OKGREEN + f"JIRA issue key = '{issue}' Status = {issue.fields.status} Creator = {issue.fields.creator.name}" + Bcolors.ENDC)
                 open_list.append(issue)
         initial += 1
@@ -191,7 +191,7 @@ def get_all_jira_epics(programinput_path, user_credentials):
         print(f'Total Epics retrieved = {total} from JIRA {filename} Project')
         # convert list of issues type to list of strings
         epics_list = []
-        epics_list.append(['Issue Type', 'Issue key', 'Issue id', 'Summary', 'Custom field (CustomField3)', 'Reporter'])
+        epics_list.append(['Issue key', 'Summary', 'DemandId (CustomField3)', 'ISBN (CustomField2)'])
         for epic in epics_issue_list:
             if epic.key is None:
                 epickey = ''
@@ -203,11 +203,18 @@ def get_all_jira_epics(programinput_path, user_credentials):
             else:
                 custom11331 = epic.fields.customfield_11331
             # Custom field3
+            # demandID field
             if epic.fields.customfield_10172 is None:
                 custom10172 = ''
             else:
                 custom10172 = epic.fields.customfield_10172
-            epics_list.append([' ', epickey, ' ', custom11331, custom10172, ' '])
+            # ISBN field
+            if epic.fields.customfield_10171 is None:
+                custom10171 = ''
+            else:
+                custom10171 = epic.fields.customfield_10171
+            # Epic key, Summary, DemandId, ISBN
+            epics_list.append([epickey, custom11331, custom10172, custom10171])
         # output list to a file
         filename = programinput_path + 'Epics' + str(project_name).strip('[]') + '.txt'
         with open(filename, 'w') as file_hndl:

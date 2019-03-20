@@ -102,7 +102,7 @@ def lookup_primary_entry(jira_list, jira_map, qjt_list, processing_errors):
     not_found = 0
     entries_found = 0
     row_number = 2
-    print(Bcolors.HEADER + f" ********** Seaching for Primary matches **********" + Bcolors.ENDC)
+    print(Bcolors.HEADER + f" ********** Seaching for Job # matches **********" + Bcolors.ENDC)
     # don't need the first row since its the headers
     del jira_list[0]
     import_list = []
@@ -128,16 +128,16 @@ def lookup_primary_entry(jira_list, jira_map, qjt_list, processing_errors):
         # could not find it at all
         if foundit != 1:
             print(
-                Bcolors.WARNING + "Primary '{}' line '{:3}' of 'All JIRA Bugs.txt' not found in 'Quality Job Tracker for JIRA.txt' "
+                Bcolors.WARNING + "Job # '{}' line '{:3}' of 'All JIRA Bugs.txt' not found in 'Quality Job Tracker for JIRA.txt' "
                 .format(entry_jira[get_index_by_column_name('primary', jira_map)], row_number) + Bcolors.ENDC)
             processing_errors.append(
-                "Primary '{}' line '{:3}' of 'All JIRA Bugs.txt' not found in 'Quality Job Tracker for JIRA.txt'"
+                "Job # '{}' line '{:3}' of 'All JIRA Bugs.txt' not found in 'Quality Job Tracker for JIRA.txt'"
                     .format(entry_jira[get_index_by_column_name('primary', jira_map)], row_number))
             # processing_errors.append(f"Primary {entry_jira[get_index_by_column_name('primary', jira_map)]} line {passes} of all JIRA Bugs.txt not found")
             not_found += 1
         row_number += 1
-    print(Bcolors.FAIL + f"{not_found} - Total Primary entries not found" + Bcolors.ENDC)
-    print(Bcolors.OKGREEN + f"{entries_found} - Total Primary entries found" + Bcolors.ENDC)
+    print(Bcolors.FAIL + f"{not_found} - Total 'Job #' entries not found" + Bcolors.ENDC)
+    print(Bcolors.OKGREEN + f"{entries_found} - Total 'Job #'' entries found" + Bcolors.ENDC)
     return import_list
 
 
@@ -199,39 +199,86 @@ def lookup_v42_username(final_import_list, final_map, username_list, username_ma
     final_import_list.insert(0, ["Project", "Issue Type", "Summary", "Description", "Epic Link", "Severity",
                                  "Reporter", "Found in Environment", "Found in Phase", "Labels", "Priority",
                                  "Activity", "Custom1", "Custom2", "Custom3", "Custom4", "Custom5", "Edition",
-                                 "Primary", "Title"])
+                                 "Job #", "Title"])
     print(Bcolors.FAIL + f"{not_found} -  Total of Usernames not matched" + Bcolors.ENDC)
     return final_import_list
 
 
-def fill_in_epic_link(my_list, final_map, epic_list, epic_map, processing_errors):
-    """ lookup DemandiD to see if there is a match in the Epicfiles """
+def fill_in_epic_link(final_list, final_map, epic_list, epic_map, processing_errors):
+    """ lookup ISBN and DemandiD to see if there is a match in the Epic files
+        This function will take out the ISBN from final output file and look thru all Epic files in this order
+        If the  ISBN is represented by 2 numbers, split them and process each of them
+        1st - look fir ISBN in ISBN column of epic files.
+        Next - look for an ISBN  match in Summary column
+        Next - look for a DemandID match of DemandId column
+        Next - look for a DemandID match of Summary column """
+
     not_found = 0
     entries_found = 0
     row_number = 2
     final_import_list = []
-    print(Bcolors.HEADER + f" ********** Seaching for Epic Link matches **********" + Bcolors.ENDC)
-    for entry in my_list:
+    print(Bcolors.HEADER + f" ********** Searching for Epic Link matches **********" + Bcolors.ENDC)
+    for entry in final_list:
         foundit = 0
         for entry1 in epic_list:
-            dstr = entry[get_index_by_column_name('Custom3', final_map)]
+            #look for ISBN match first in ISBN column in Epic files
+            datastr = entry[get_index_by_column_name('Custom2', final_map)]
+            datastr = datastr.strip()
+            # ISBN might be represented with 2 numbers.. split them and process both
+            if '/' in datastr:
+                isbn1, isbn2 = datastr.split('/')
+                isbn1 = isbn1.strip()
+                isbn2 = isbn2.strip()
+                if isbn2:
+                    if isbn2 in entry1[get_index_by_column_name('isbn', epic_map)]:
+                        entry[get_index_by_column_name('Epic Link', final_map)] = entry1[
+                            get_index_by_column_name('key', epic_map)]
+                        final_import_list.append(entry)
+                        isbn += 1
+                        entries_found += 1
+                        foundit = 1
+                        break
+                    # look for ISBN match first in Summary column in Epic files
+                    if isbn2 in entry1[get_index_by_column_name('summary', epic_map)]:
+                        entry[get_index_by_column_name('Epic Link', final_map)] = entry1[
+                            get_index_by_column_name('key', epic_map)]
+                        final_import_list.append(entry)
+                        isbns += 1
+                        foundit = 1
+                        entries_found += 1
+                        break
+                datastr = isbn1
             # check is string is empty
-            if not dstr:
-                break
-            if dstr in entry1[get_index_by_column_name('custom', epic_map)]:
-                entry[get_index_by_column_name('Epic Link', final_map)] = entry1[
-                    get_index_by_column_name('key', epic_map)]
-                final_import_list.append(entry)
-                entries_found += 1
-                foundit = 1
-                break
-        if foundit == 0:
-            dstr = entry[get_index_by_column_name('Custom3', final_map)]
-            if not dstr:
-                not_found += 1
-                continue
-            for entry1 in epic_list:
-                if dstr in entry1[get_index_by_column_name('summary', epic_map)]:
+            if datastr:
+                if datastr in entry1[get_index_by_column_name('isbn', epic_map)]:
+                    entry[get_index_by_column_name('Epic Link', final_map)] = entry1[
+                        get_index_by_column_name('key', epic_map)]
+                    final_import_list.append(entry)
+                    entries_found += 1
+                    foundit = 1
+                    break
+                #look for ISBN match first in Sumamry column in Epic files
+                if datastr in entry1[get_index_by_column_name('summary', epic_map)]:
+                    entry[get_index_by_column_name('Epic Link', final_map)] = entry1[
+                        get_index_by_column_name('key', epic_map)]
+                    final_import_list.append(entry)
+                    foundit = 1
+                    entries_found += 1
+                    break
+            # did not find ISBN match so let's see if we can match DemandID
+            #look for DemandId match first in DeamndId column in Epic files
+            datastr = entry[get_index_by_column_name('Custom3', final_map)]
+            datastr = datastr.strip()
+            if datastr:
+                if datastr in entry1[get_index_by_column_name('demandid', epic_map)]:
+                    entry[get_index_by_column_name('Epic Link', final_map)] = entry1[
+                        get_index_by_column_name('key', epic_map)]
+                    final_import_list.append(entry)
+                    entries_found += 1
+                    foundit = 1
+                    break
+                #look for DemandId match first in Sumamry column in Epic files
+                if datastr in entry1[get_index_by_column_name('summary', epic_map)]:
                     entry[get_index_by_column_name('Epic Link', final_map)] = entry1[
                         get_index_by_column_name('key', epic_map)]
                     final_import_list.append(entry)
@@ -239,16 +286,16 @@ def fill_in_epic_link(my_list, final_map, epic_list, epic_map, processing_errors
                     entries_found += 1
                     break
         if foundit == 0:
-            print(Bcolors.WARNING + "DemandID '{:>7}' associated with Primary '{}' not found in Epic files ".format(
+            print(Bcolors.WARNING + "No Epic match '{:>7}' associated with Job # '{}' found in Epic files ".format(
                 entry[get_index_by_column_name('Custom3', final_map)],
-                entry[get_index_by_column_name('Primary', final_map)]) + Bcolors.ENDC)
-            processing_errors.append("DemandID '{:>7}' associated with Primary '{}' not found in Epic files ".format(
+                entry[get_index_by_column_name('Job #', final_map)]) + Bcolors.ENDC)
+            processing_errors.append("No Epic match '{:>7}' associated with Job # '{}' found in Epic files ".format(
                 entry[get_index_by_column_name('Custom3', final_map)],
-                entry[get_index_by_column_name('Primary', final_map)]))
+                entry[get_index_by_column_name('Job #', final_map)]))
             not_found += 1
         row_number += 1
-    print(Bcolors.FAIL + f"{not_found} -  Total of DemandIDs not found" + Bcolors.ENDC)
-    print(Bcolors.OKGREEN + f"{entries_found} -  Total of DemandIDs found" + Bcolors.ENDC)
+    print(Bcolors.FAIL + f"{not_found} -  Total of Epics not found" + Bcolors.ENDC)
+    print(Bcolors.OKGREEN + f"{entries_found} -  Total of Epics found" + Bcolors.ENDC)
     return final_import_list
 
 
@@ -318,11 +365,11 @@ def create_jira_import_main(program_input_path, jira_input_path):
     jira_map = {"sheet name": 0, "editorial": 1, "freelancer": 2, "primary": 3, "chapter": 4, "summary": 5,
                 "additional": 6, "primarymod": 7}
     qjt_map = {"primary": 0, "assingnedpm": 1, "title": 2, "edition": 3, "isbn": 4, "demandid": 5, "author": 6}
-    epic_map = {"type": 0, "key": 1, "id": 2, "summary": 3, "custom": 4}
+    epic_map = {"key": 0, "summary": 1, "demandid": 2, "isbn": 3}
     final_map = {"Project": 0, "Issue Type": 1, "Summary": 2, "Description": 3, "Epic Link": 4, "Severity": 5,
                  "Reporter": 6, "Found in Environment": 7, "Found in Phase": 8, "Labels": 9, "Priority": 10,
                  "Activity": 11, "Custom1": 12, "Custom2": 13, "Custom3": 14, "Custom4": 15, "Custom5": 16,
-                 "Edition": 17, "Primary": 18, "Title": 19}
+                 "Edition": 17, "Job #": 18, "Title": 19}
     username_map = {"name": 0, "V42name": 1}
 
     # Log all calls when debugging

@@ -105,8 +105,7 @@ def decode_user_credentials(filename, crypt_key):
                 clear_list.append(decode(crypt_key, line))
             except Exception:
                 print(Bcolors.FAIL + "credentials.txt is possibly corrupted. Please delete file 'credentials.txt' and restart program" + Bcolors.ENDC)
-            finally:
-                f.close()
+        f.close()
         return clear_list
 
 def update_smartsheets(input_programinput_path, input_jirainput_path, user_credentials):
@@ -168,7 +167,7 @@ def main():
     jirainput_path = sys.argv[2]
     print("Python Version from is " + platform.python_version())
     print("System Version is " + platform.platform())
-    print("Software Version is V5.3.0")
+    print("Software Version is V5.5.1")
     localtime = time.asctime(time.localtime(time.time()))
     print("Local current time :", localtime)
     crypt_key = 'secret SPi message'
