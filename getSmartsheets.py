@@ -26,8 +26,8 @@ import sys
 
 import colorama
 import smartsheet
-from smartsheet import reports
 from openpyxl import load_workbook
+from smartsheet import reports
 
 
 class Bcolors:
@@ -65,6 +65,12 @@ def get_file_info(filename):
 
 def convert_downloaded_files_to_tab_delimited(program_input_path):
     """let's open each new downloaded file and search for filename"""
+    try:
+        file_hndl = open(program_input_path + "filenames.txt", 'w')
+    except Exception:
+        print(Bcolors.FAIL + "Cannot open file " + program_input_path + " filenames.txt" + Bcolors.ENDC)
+        sys.exit(1)
+
     for full_filename in os.listdir(program_input_path):  # use the directory name here
         filename, file_ext = os.path.splitext(full_filename)
         if file_ext == '.xlsx':
@@ -96,7 +102,13 @@ def convert_downloaded_files_to_tab_delimited(program_input_path):
                         my_row.append(value)
                     txt_writer.writerow(my_row)  # write the lines to file`
                 tab_text.close()
-
+            try:
+                file_hndl.write(tab_filename)
+                file_hndl.write('\n')
+            except IOError:
+                print(Bcolors.FAIL + "Cannot write to file " + program_input_path + " filenames.txt" + Bcolors.ENDC)
+                sys.exit(1)
+    file_hndl.close()
 
 def getSmartsheetMain(program_input_path, user_credentials):
     """ main function """
@@ -111,10 +123,10 @@ def getSmartsheetMain(program_input_path, user_credentials):
     for ids in smartsheet_ids:
         try:
             ss_client.Reports.get_report_as_excel(ids, program_input_path)
-        except Exception:
-            print(f"You Token is not valid in accessToken.txt")
+        except Exception as e:
+            print(f"You Token is not valid in credentials.txt {e}")
+            print("Delete credentials.txt and restart program")
             sys.exit(1)
     convert_downloaded_files_to_tab_delimited(program_input_path)
     print("All Smartsheets Downloaded")
     colorama.deinit()
-

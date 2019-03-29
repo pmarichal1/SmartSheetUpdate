@@ -41,9 +41,10 @@ reference dict with JIRA issue
             }
 
 """
-import sys
 import csv
+import sys
 import time
+
 import colorama
 from jira import JIRA
 
@@ -90,7 +91,7 @@ def get_index_by_column_name(column_name, column_map):
         return 0
 
 
-def create_jira_issue(jira, jira_list, jira_update_list):
+def create_jira_issue(jira, jira_list, jira_update_list, production):
     """ update JIRA with all the new issues """
     final_map = {"Project": 0, "Issue Type": 1, "Summary": 2, "Description": 3, "Epic Link": 4, "Severity": 5,
                  "Reporter": 6, "Found in Environment": 7, "Found in Phase": 8, "Labels": 9, "Priority": 10,
@@ -99,7 +100,6 @@ def create_jira_issue(jira, jira_list, jira_update_list):
     del jira_list[0]
     # change next line to 1 for production
     # TODO
-    production = False
     entry_index = 1
     for line in jira_list:
         issue_entry = {}
@@ -122,22 +122,25 @@ def create_jira_issue(jira, jira_list, jira_update_list):
         issue_entry.update({'customfield_10172': line[get_index_by_column_name("Custom3", final_map)]})
         issue_entry.update({'customfield_10202': line[get_index_by_column_name("Custom4", final_map)]})
         issue_entry.update({'customfield_10203': line[get_index_by_column_name("Custom5", final_map)]})
-        if production:
+        if production == '1':
             issue = jira.create_issue(fields=issue_entry)
             print(Bcolors.OKGREEN + f"{entry_index} - Created JIRA issue = '{issue}' Reporter = '{line[get_index_by_column_name('Reporter', final_map)]}' Job # = '{line[get_index_by_column_name('Job #', final_map)]}' Summary = '{line[get_index_by_column_name('Summary', final_map)]}'" + Bcolors.ENDC)
+            print(line)
             jira.transition_issue(issue, 'Fixed', fields={'customfield_13831': {'value': 'Operator Error'}})
             print(Bcolors.OKGREEN + f"   Changed Workflow to Fixed " + Bcolors.ENDC)
             jira.transition_issue(issue, 'Close')
             print(Bcolors.OKGREEN + f"     Changed Workflow to Closed " + Bcolors.ENDC)
         else:
             print(Bcolors.OKGREEN + f"{entry_index} Created JIRA issue = 'QUA-{entry_index}', - Emulated - Reporter = '{line[get_index_by_column_name('Reporter', final_map)]}'" + Bcolors.ENDC)
+            print(line)
             print(Bcolors.OKGREEN + f"   Changed Workflow to Fixed - Emulated -" + Bcolors.ENDC)
             print(Bcolors.OKGREEN + f"     Changed Workflow to Closed - Emulated -" + Bcolors.ENDC)
         jira_update_list.append(f"{entry_index} - Created JIRA issue = 'QUA-{entry_index}', then Fixed and Closed it")
+        jira_update_list.append(line)
         time.sleep(1)
         entry_index += 1
-        if not production:
-            if entry_index == 5:
+        if production == '0':
+            if entry_index == 6:
                 break
 
 
@@ -166,7 +169,7 @@ def get_all_jira_epics(programinput_path, user_credentials):
     options = {'server': 'https://agile-jira.pearson.com'}
     try:
         jira = JIRA(options, basic_auth=(user_credentials[1], user_credentials[2]))
-    except Exception:
+    except Exception as e:
         print(Bcolors.FAIL + "JIRA credentials not valid. Please delete file 'credentials.txt' and restart program" + Bcolors.ENDC)
         sys.exit(1)
     project_names = ['QUA', 'PM', 'PRODN']
@@ -241,7 +244,7 @@ def write_updates_to_file(filename, update_list):
         sys.exit(1)
 
 
-def access_jira(jira_input_path, user_credentials):
+def access_jira(jira_input_path, user_credentials, production):
     """ main access point for routines """
     colorama.init()
     filename = jira_input_path + 'JIRAImportData.txt'
@@ -251,16 +254,12 @@ def access_jira(jira_input_path, user_credentials):
     options = {'server': 'https://agile-jira.pearson.com'}
     try:
         jira = JIRA(options, basic_auth=(user_credentials[1], user_credentials[2]))
-    except Exception:
+    except Exception as e:
         print(Bcolors.FAIL + "JIRA credentials not valid. Please delete file 'credentials.txt' and restart program" + Bcolors.ENDC)
         sys.exit(1)
     print(30 * "-" + Bcolors.OKBLUE + "Creating JIRA Issues" + Bcolors.ENDC + 30 * "-")
-    create_jira_issue(jira, jira_list, jira_update_list)
+    create_jira_issue(jira, jira_list, jira_update_list, production)
     print(30 * "-" + Bcolors.OKBLUE + "Retrieving Open JIRA Issues" + Bcolors.ENDC + 30 * "-")
     get_all_open_jira_issues(jira, user_credentials[1])
     filename = jira_input_path + 'JIRAUpdates.txt'
     write_updates_to_file(filename, jira_update_list)
-
-
-
-

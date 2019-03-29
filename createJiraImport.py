@@ -24,6 +24,7 @@ import platform
 import sys
 # import logging
 import time
+
 import colorama
 
 
@@ -384,8 +385,8 @@ def create_jira_import_main(program_input_path, jira_input_path):
     filename_list = read_file_info(filename, 0)
     filename_dict = create_filename_dict(filename_list)
     # get JIRA info
-    if len(filename_list) < 6:
-        print(Bcolors.FAIL + "Not enough entries in filename.txt , should be 6 entries" + Bcolors.ENDC)
+    if len(filename_list) < 2:
+        print(Bcolors.FAIL + "Not enough entries in filename.txt , should be 2 entries" + Bcolors.ENDC)
         sys.exit(1)
     # get 'All JIRA bugs.txt' file info
     filename = program_input_path + filename_dict.get(0, "")
@@ -394,17 +395,17 @@ def create_jira_import_main(program_input_path, jira_input_path):
     # get Quality Job Tracker info
     filename = program_input_path + filename_dict.get(1, "")
     qjt_list = read_file_info(filename, 1)
-    # get EpicsQUA info
-    filename = program_input_path + filename_dict.get(2, "")
+    # get EpicsQUA info and create list
+    filename = program_input_path + "EpicsQUA.txt"
     epic_list = read_file_info(filename, 1)
-    # get EpicsPM info
-    filename = program_input_path + filename_dict.get(3, "")
+    # get EpicsPM info and append to list
+    filename = program_input_path + "EpicsPM.txt"
     epic_list += read_file_info(filename, 1)
-    # get EpicsPRODN info
-    filename = program_input_path + filename_dict.get(4, "")
+    # get EpicsPRODN info and append to list
+    filename = program_input_path + "EpicsPRODN.txt"
     epic_list += read_file_info(filename, 1)
     # get 'UserNames.txt'  info
-    filename = program_input_path + filename_dict.get(5, "")
+    filename = program_input_path + "UserNames.txt"
     username_list = read_file_info(filename, 0)
     if len(username_list) < 1:
         print(Bcolors.FAIL + "Need at least 1 entry in UserNames.txt" + Bcolors.ENDC)
@@ -423,5 +424,3 @@ def create_jira_import_main(program_input_path, jira_input_path):
     filename = jira_input_path + 'ProcessingErrors.txt'
     write_errors_to_file(filename, processing_errors)
     colorama.deinit()
-
-

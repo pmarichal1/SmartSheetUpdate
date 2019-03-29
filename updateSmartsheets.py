@@ -24,6 +24,7 @@ import platform
 import sys
 # import logging
 import time
+
 import colorama
 import smartsheet
 from smartsheet import sheets
@@ -207,7 +208,7 @@ def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
         # get the sheet info from Smartsheets
         try:
             sheet = ss_client.Sheets.get_sheet(sheet_id)
-        except Exception:
+        except Exception as e:
             print("Possible invalid sheet ID in smartsheetUpdateIDs.txt")
             sys.exit(1)
         print(Bcolors.OKGREEN + f"Checking Smartsheet {sheet.name}" + Bcolors.ENDC)
@@ -295,5 +296,3 @@ def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
     filename = jira_input_path + 'SmartsheetUpdates.txt'
     write_updates_to_file(filename, ss_update_list)
     colorama.deinit()
-
-
