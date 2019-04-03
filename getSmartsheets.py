@@ -30,16 +30,28 @@ from openpyxl import load_workbook
 from smartsheet import reports
 
 
+#class Bcolors:
+#    """color palette for print statements"""
+#    HEADER = '\033[96m'
+#    OKBLUE = '\033[94m'
+#    OKGREEN = '\033[92m'
+#    ENDC = '\033[0m'
+#    BOLD = '\033[1m'
+#    UNDERLINE = '\033[4m'
+#    WARNING = '\033[93m'
+#    FAIL = '\033[91m'
+
+
 class Bcolors:
-    """color pallette for print statements"""
-    HEADER = '\033[96m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
+    """color palette for print statements"""
+    HEADER = ''
+    OKBLUE = ''
+    OKGREEN = ''
+    ENDC = ''
+    BOLD = ''
+    UNDERLINE = ''
+    WARNING = '-- Warning -- '
+    FAIL = '\n\n ***************************************************   Error  ***************************************************\n'
 
 
 def get_file_info(filename):
@@ -48,11 +60,11 @@ def get_file_info(filename):
         ss_hndl = open(filename, 'r')
     except FileNotFoundError:
         print(Bcolors.FAIL + f"File not found {filename}" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     except Exception as e:
         errno, strerror = e.args
         print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {filename}" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     else:
         line_list = ss_hndl.readlines()
         # strip off newlines
@@ -69,7 +81,7 @@ def convert_downloaded_files_to_tab_delimited(program_input_path):
         file_hndl = open(program_input_path + "filenames.txt", 'w')
     except Exception:
         print(Bcolors.FAIL + "Cannot open file " + program_input_path + " filenames.txt" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
 
     for full_filename in os.listdir(program_input_path):  # use the directory name here
         filename, file_ext = os.path.splitext(full_filename)
@@ -85,7 +97,7 @@ def convert_downloaded_files_to_tab_delimited(program_input_path):
             except Exception as e:
                 errno, strerror = e.args
                 print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {program_input_path}{tab_text}" + Bcolors.ENDC)
-                sys.exit(1)
+                return(0)
             else:
                 txt_writer = csv.writer(tab_text, delimiter='\t', lineterminator='\n')  # writefile
                 for row in first_sheet.iter_rows():
@@ -107,18 +119,19 @@ def convert_downloaded_files_to_tab_delimited(program_input_path):
                 file_hndl.write('\n')
             except IOError:
                 print(Bcolors.FAIL + "Cannot write to file " + program_input_path + " filenames.txt" + Bcolors.ENDC)
-                sys.exit(1)
+                return(0)
     file_hndl.close()
 
 def getSmartsheetMain(program_input_path, user_credentials):
     """ main function """
     colorama.init()
-
     filename = program_input_path + "smartsheetGetIDs.txt"
     smartsheet_ids = get_file_info(filename)
+    if not smartsheet_ids:
+        return(0)
     if len(smartsheet_ids) < 2:
         print(Bcolors.FAIL + "Not enough entries in smartsheetGetIDs.txt , should be 2 entries" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     ss_client = smartsheet.Smartsheet(user_credentials[0])
     for ids in smartsheet_ids:
         try:
@@ -126,7 +139,7 @@ def getSmartsheetMain(program_input_path, user_credentials):
         except Exception as e:
             print(f"You Token is not valid in credentials.txt {e}")
             print("Delete credentials.txt and restart program")
-            sys.exit(1)
+            return(0)
     convert_downloaded_files_to_tab_delimited(program_input_path)
     print("All Smartsheets Downloaded")
-    colorama.deinit()
+    return(1)

@@ -19,15 +19,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from tkinter import Tk, Label, Button, messagebox, ttk, HORIZONTAL, Frame, PhotoImage, Entry, LabelFrame
+from tkinter import Tk, Label, Button, messagebox, ttk, HORIZONTAL, Frame, PhotoImage, Entry, LabelFrame,Text, Scrollbar, END
 import threading
 import base64
 import platform
 import os
 import sys
 import time
-from getpass import getpass
 import colorama
+
 
 from createJiraImport import create_jira_import_main
 from getSmartsheets import getSmartsheetMain
@@ -35,17 +35,29 @@ from updateJira import access_jira, get_all_jira_epics
 from updateSmartsheets import updateSmartsheetMain
 
 
+#class Bcolors:
+#    """color palette for print statements"""
+#    HEADER = '\033[96m'
+#    OKBLUE = '\033[94m'
+#    OKGREEN = '\033[92m'
+#    ENDC = '\033[0m'
+#    BOLD = '\033[1m'
+#    UNDERLINE = '\033[4m'
+#    WARNING = '\033[93m'
+#    FAIL = '\033[91m'
+
+VERSION = "JIRA Automation V5.9.0"
+
 class Bcolors:
     """color palette for print statements"""
-    HEADER = '\033[96m'
-
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
+    HEADER = ''
+    OKBLUE = ''
+    OKGREEN = ''
+    ENDC = ''
+    BOLD = ''
+    UNDERLINE = ''
+    WARNING = ''
+    FAIL = '\n\n ***************************************************   Error  ***************************************************\n'
 
 
 def encode(key,  clear):
@@ -114,6 +126,18 @@ def decode_user_credentials(filename, crypt_key):
         f.close()
         return clear_list
 
+
+class Std_redirector(object):
+    def __init__(self,widget):
+        self.widget = widget
+
+    def write(self,string):
+        self.widget.insert(END,string)
+        self.widget.see(END)
+
+    def flush(self):
+        pass
+
 class Authenticate(Tk):
     """docstring for Values"""
 
@@ -174,22 +198,20 @@ class MySPiGUI:
         self.production = param_list[2]
         self.click_png_path = param_list[0] + 'click.png'
         self.spi_png_path = param_list[0] + 'spi.png'
-
         self.master.tk.call('wm', 'iconphoto', self.master._w, PhotoImage(file=self.click_png_path))
-
-        master.title("JIRA Automation V5.7.0")
+        master.title(VERSION)
 
         self.image = PhotoImage(file=self.spi_png_path)
         self.label = Label(image=self.image)
         self.label.pack()
 
-        self.frame1 = Frame(master, highlightbackground="black", highlightcolor="black", highlightthickness=4, width=700, height=220, bd= 2)
+        self.frame1 = Frame(master, highlightbackground="black", highlightcolor="black", highlightthickness=4, bd= 2)
         self.frame1.pack()
         # bg='#e6f2ff',
         self.label = Label(self.frame1, width=30, font=("Calibri", 15), fg='blue', text="Click below to make a selection")
         self.label.pack()
-#
-        self.gen_button = Button(self.frame1, highlightthickness=5, width=40, font=("Calibri", 16), text="Step 1 - Generate JIRA Import File", fg='black', command=self.func1)
+
+        self.gen_button = Button(self.frame1, highlightthickness=5, width=40, font=("Calibri", 16), text="Step 1 - Download and Generate JIRA Import File       ", fg='black', command=self.func1)
         self.gen_button.pack()
         self.gen_button.bind("<Enter>", lambda event: self.gen_button.configure(fg="orange"))
         self.gen_button.bind("<Leave>", lambda event: self.gen_button.configure(fg="black"))
@@ -204,25 +226,50 @@ class MySPiGUI:
         self.update_button.bind("<Enter>", lambda event: self.update_button.configure(fg="orange"))
         self.update_button.bind("<Leave>", lambda event: self.update_button.configure(fg="black"))
 
-        self.get_button = Button(self.frame1, highlightthickness=5, width=40, font=("Calibri", 16), text="(Optional) Update Local Epic Lookup Files", fg='gray', command=self.func4)
-        self.get_button.pack()
-        self.get_button.bind("<Enter>", lambda event: self.get_button.configure(fg="orange"))
-        self.get_button.bind("<Leave>", lambda event: self.get_button.configure(fg="black"))
+        self.optional_button = Button(self.frame1, highlightthickness=5, font=("Calibri", 16), text="(Optional) Update Local Epic Lookup Files", fg='gray', command=self.func4)
+        self.optional_button.pack()
+        self.optional_button.bind("<Enter>", lambda event: self.optional_button.configure(fg="orange"))
+        self.optional_button.bind("<Leave>", lambda event: self.optional_button.configure(fg="black"))
 
         self.progress = ttk.Progressbar(self.frame1, orient=HORIZONTAL, length=450, mode='determinate')
         self.progress.pack()
 
-        self.close_button = Button(self.frame1, highlightthickness=5, width=10, text="Close", fg='black', command=master.quit)
+        self.close_button = Button(self.frame1, highlightthickness=5, width=10, text="Quit", fg='black', command=master.quit)
         self.close_button.pack()
+        self.close_button.bind("<Enter>", lambda event: self.close_button.configure(fg="red"))
+        self.close_button.bind("<Leave>", lambda event: self.close_button.configure(fg="black"))
 
+        # create new frame that will contain output text frame with scrollbar
+        self.frame2 = Frame(master,  highlightbackground="black", highlightcolor="black", highlightthickness=4, bd= 2)
+        self.frame2.pack(expand=1)
 
+        # bg='#e6f2ff',
+        self.label = Label(self.frame2, width=90, font=("Calibri", 15), fg='blue', text="Text Output")
+        self.label.pack(expand=1)
+
+        # create a Scrollbar and associate it with txt
+        self.scrollb = Scrollbar(self.frame2)
+        self.scrollb.pack(side='right', fill='y')
+
+        # create a Text widget
+        self.txt = Text(self.frame2, width=115, font=("Calibri", 12), borderwidth=3, wrap='word', undo=True, yscrollcommand=self.scrollb.set)
+        self.txt.pack(side='left', fill='both')
+        self.scrollb.config(command=self.txt.yview)
 
     def func1(self):
         """ handle step1 functions """
         def step1_thread():
-            getSmartsheetMain(self.programinput_path, self.user_credentials)
-            create_jira_import_main(self.programinput_path, self.jirainput_path)
-            messagebox.showinfo("Information", "Step 1 Completed")
+            retok = getSmartsheetMain(self.programinput_path, self.user_credentials)
+            if not retok:
+                self.progress.stop()
+                self.close_button['state'] = 'normal'
+                return(0)
+            retok = create_jira_import_main(self.programinput_path, self.jirainput_path)
+            if not retok:
+                self.progress.stop()
+                self.close_button['state'] = 'normal'
+                return(0)
+            messagebox.showinfo("Information", "Step 1 Completed Successfully")
             self.progress.stop()
             self.enable_buttons()
 
@@ -233,8 +280,12 @@ class MySPiGUI:
     def func2(self):
         """ handle step2 functions """
         def step2_thread():
-            access_jira(self.jirainput_path, self.user_credentials, self.production)
-            messagebox.showinfo("", "Step 2 Completed")
+            retok = access_jira(self.jirainput_path, self.user_credentials, self.production)
+            if not retok:
+                self.progress.stop()
+                self.close_button['state'] = 'normal'
+                return(0)
+            messagebox.showinfo("", "Step 2 Completed Successfully")
             self.progress.stop()
             self.enable_buttons()
 
@@ -247,8 +298,12 @@ class MySPiGUI:
     def func3(self):
         """ handle step3 functions """
         def step3_thread():
-            updateSmartsheetMain(self.programinput_path, self.jirainput_path, self.user_credentials)
-            messagebox.showinfo("", "Step 3 Completed")
+            retok = updateSmartsheetMain(self.programinput_path, self.jirainput_path, self.user_credentials)
+            if not retok:
+                self.progress.stop()
+                self.close_button['state'] = 'normal'
+                return(0)
+            messagebox.showinfo("", "Step 3 Completed Successfully")
             self.progress.stop()
             self.enable_buttons()
 
@@ -261,8 +316,12 @@ class MySPiGUI:
     def func4(self):
         """ handle step4 functions """
         def step4_thread():
-            get_all_jira_epics(self.programinput_path, self.user_credentials)
-            messagebox.showinfo("", "Optional Step Completed")
+            retok = get_all_jira_epics(self.programinput_path, self.user_credentials)
+            if not retok:
+                self.progress.stop()
+                self.close_button['state'] = 'normal'
+                return(0)
+            messagebox.showinfo("", "Optional Step Completed Successfully")
             self.progress.stop()
             self.enable_buttons()
 
@@ -275,7 +334,7 @@ class MySPiGUI:
         self.gen_button['state'] = 'disabled'
         self.create_button['state'] = 'disabled'
         self.update_button['state'] = 'disabled'
-        self.get_button['state'] = 'disabled'
+        self.optional_button['state'] = 'disabled'
         self.close_button['state'] = 'disabled'
 
     def enable_buttons(self):
@@ -283,7 +342,7 @@ class MySPiGUI:
         self.gen_button['state'] = 'normal'
         self.create_button['state'] = 'normal'
         self.update_button['state'] = 'normal'
-        self.get_button['state'] = 'normal'
+        self.optional_button['state'] = 'normal'
         self.close_button['state'] = 'normal'
 
 
@@ -299,7 +358,7 @@ def main():
     param_list.append(production)
     print("Python Version from is " + platform.python_version())
     print("System Version is " + platform.platform())
-    print("Software Version is V5.6.1")
+    print(VERSION)
     localtime = time.asctime(time.localtime(time.time()))
     print("Local current time :", localtime)
     crypt_key = 'secret SPi message'
@@ -318,9 +377,14 @@ def main():
         user_credentials = decode_user_credentials(filename, crypt_key)
 
     root = Tk()
-    root.geometry("610x460")
+    root.geometry("1000x800")
+    root.resizable(0, 0)  # Don't allow resizing in the x or y direction
     my_gui = MySPiGUI(root, user_credentials, param_list)
+    # redirecting output from script to Tkinter Text window
+    sys.stdout = Std_redirector(my_gui.txt)
     root.mainloop()
+    # To stop redirecting stdout:
+    sys.stdout = sys.__stdout__
     root.destroy()
 
 

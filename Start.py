@@ -20,19 +20,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import base64
+import os
 import platform
 import sys
-import os
 import time
-import colorama
-import base64
 from getpass import getpass
+
+import colorama
 
 from createJiraImport import create_jira_import_main
 from getSmartsheets import getSmartsheetMain
+from updateJira import access_jira, get_all_jira_epics
 from updateSmartsheets import updateSmartsheetMain
-from updateJira import access_jira
-from updateJira import get_all_jira_epics
 
 
 class Bcolors:
@@ -83,7 +83,7 @@ def encode_user_credentials(filename, crypt_key, token, username, password):
         sys.exit(1)
     except Exception as e:
         errno, strerror = e.args
-        print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {filename}" + Bcolors.ENDC)
+        print(Bcolors.FAIL + f"I/O error {errno}: {strerror} {filename}" + Bcolors.ENDC)
         sys.exit(1)
     else:
         for line in credentials:
@@ -103,7 +103,7 @@ def decode_user_credentials(filename, crypt_key):
         for line in f.readlines():
             try:
                 clear_list.append(decode(crypt_key, line))
-            except Exception:
+            except Exception as e:
                 print(Bcolors.FAIL + "credentials.txt is possibly corrupted. Please delete file 'credentials.txt' and restart program" + Bcolors.ENDC)
         f.close()
         return clear_list
@@ -129,7 +129,7 @@ def update_smartsheets(input_programinput_path, input_jirainput_path, user_crede
             else:
                 continue
 
-def access_jira_local(jirainput_path, user_credentials):
+def access_jira_local(jirainput_path, user_credentials, production):
     """ update JIRA in server """
     while True:
         print("Are you sure you want to update JIRA?")
@@ -142,7 +142,7 @@ def access_jira_local(jirainput_path, user_credentials):
         else:
             if choice == 'yes':
                 print(Bcolors.OKGREEN + "Updating JIRA" + Bcolors.ENDC)
-                access_jira(jirainput_path, user_credentials)
+                access_jira(jirainput_path, user_credentials, production)
                 return
             elif choice == 'no':
                 print(Bcolors.OKGREEN + "JIRA not updated" + Bcolors.ENDC)
@@ -165,9 +165,10 @@ def main():
     colorama.init()
     programinput_path = sys.argv[1]
     jirainput_path = sys.argv[2]
+    production = sys.argv[3]
     print("Python Version from is " + platform.python_version())
     print("System Version is " + platform.platform())
-    print("Software Version is V5.5.1")
+    print("Software Version is V5.6.1")
     localtime = time.asctime(time.localtime(time.time()))
     print("Local current time :", localtime)
     crypt_key = 'secret SPi message'
@@ -197,7 +198,7 @@ def main():
             getSmartsheetMain(programinput_path, user_credentials)
             create_jira_import_main(programinput_path, jirainput_path)
         elif choice == 2:
-            access_jira_local(jirainput_path, user_credentials)
+            access_jira_local(jirainput_path, user_credentials, production)
         elif choice == 3:
             update_smartsheets(programinput_path, jirainput_path, user_credentials)
         elif choice == 4:

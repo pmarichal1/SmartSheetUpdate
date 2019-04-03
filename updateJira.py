@@ -49,17 +49,27 @@ import colorama
 from jira import JIRA
 
 
-class Bcolors:
-    """color pallette for print statements"""
-    HEADER = '\033[96m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
+#class Bcolors:
+#    """color palette for print statements"""
+#    HEADER = '\033[96m'
+#    OKBLUE = '\033[94m'
+#    OKGREEN = '\033[92m'
+#    ENDC = '\033[0m'
+#    BOLD = '\033[1m'
+#    UNDERLINE = '\033[4m'
+#    WARNING = '\033[93m'
+#    FAIL = '\033[91m'
 
+class Bcolors:
+    """color palette for print statements"""
+    HEADER = ''
+    OKBLUE = ''
+    OKGREEN = ''
+    ENDC = ''
+    BOLD = ''
+    UNDERLINE = ''
+    WARNING = '-- Warning -- '
+    FAIL = '\n\n ***************************************************   Error  ***************************************************\n'
 
 def read_jira_info(filename, header):
     """create a list from the file information. header=0  means no header in file,header=1 means header present"""
@@ -75,7 +85,8 @@ def read_jira_info(filename, header):
             return filelist
     except IOError:
         print(Bcolors.FAIL + "No such file:" + filename + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
+    return(1)
 
 
 def get_index_by_column_name(column_name, column_map):
@@ -125,14 +136,14 @@ def create_jira_issue(jira, jira_list, jira_update_list, production):
         if production == '1':
             issue = jira.create_issue(fields=issue_entry)
             print(Bcolors.OKGREEN + f"{entry_index} - Created JIRA issue = '{issue}' Reporter = '{line[get_index_by_column_name('Reporter', final_map)]}' Job # = '{line[get_index_by_column_name('Job #', final_map)]}' Summary = '{line[get_index_by_column_name('Summary', final_map)]}'" + Bcolors.ENDC)
-            print(line)
+            print(f"   {line}")
             jira.transition_issue(issue, 'Fixed', fields={'customfield_13831': {'value': 'Operator Error'}})
             print(Bcolors.OKGREEN + f"   Changed Workflow to Fixed " + Bcolors.ENDC)
             jira.transition_issue(issue, 'Close')
             print(Bcolors.OKGREEN + f"     Changed Workflow to Closed " + Bcolors.ENDC)
         else:
             print(Bcolors.OKGREEN + f"{entry_index} Created JIRA issue = 'QUA-{entry_index}', - Emulated - Reporter = '{line[get_index_by_column_name('Reporter', final_map)]}'" + Bcolors.ENDC)
-            print(line)
+            print(f"   {line}")
             print(Bcolors.OKGREEN + f"   Changed Workflow to Fixed - Emulated -" + Bcolors.ENDC)
             print(Bcolors.OKGREEN + f"     Changed Workflow to Closed - Emulated -" + Bcolors.ENDC)
         jira_update_list.append(f"{entry_index} - Created JIRA issue = 'QUA-{entry_index}', then Fixed and Closed it")
@@ -142,6 +153,7 @@ def create_jira_issue(jira, jira_list, jira_update_list, production):
         if production == '0':
             if entry_index == 6:
                 break
+    return(1)
 
 
 def get_all_open_jira_issues(jira, username):
@@ -161,6 +173,7 @@ def get_all_open_jira_issues(jira, username):
         if not issues:
             break
         total += len(issues)
+    return(1)
 
 
 def get_all_jira_epics(programinput_path, user_credentials):
@@ -171,7 +184,7 @@ def get_all_jira_epics(programinput_path, user_credentials):
         jira = JIRA(options, basic_auth=(user_credentials[1], user_credentials[2]))
     except Exception as e:
         print(Bcolors.FAIL + "JIRA credentials not valid. Please delete file 'credentials.txt' and restart program" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     project_names = ['QUA', 'PM', 'PRODN']
     # create a list of of issues from JIRA
     for project_name in project_names:
@@ -185,13 +198,14 @@ def get_all_jira_epics(programinput_path, user_credentials):
             for epic in epics:
                 epics_issue_list.append(epic)  # GET RID OF THIS IN PRODUCTION
             initial += 1
-            print('.', end='', flush=True)
+            #print('.', end='', flush=True)
+            print('.', end='')
             if not epics:
                 break
             total += len(epics)
         print(' ')
         filename = str(project_name).strip('[]')
-        print(f'Total Epics retrieved = {total} from JIRA {filename} Project')
+        print(f'Total Epics retrieved from JIRA {filename} Project = {total} ')
         # convert list of issues type to list of strings
         epics_list = []
         epics_list.append(['Issue key', 'Summary', 'DemandId (CustomField3)', 'ISBN (CustomField2)'])
@@ -225,7 +239,8 @@ def get_all_jira_epics(programinput_path, user_credentials):
                 file_hndl.writelines('\t'.join(i) + '\n' for i in epics_list)
             except IOError:
                 print(Bcolors.FAIL + "Cannot open file:" + filename + Bcolors.ENDC)
-                sys.exit(1)
+                return(0)
+    return(1)
 
 
 def write_updates_to_file(filename, update_list):
@@ -238,10 +253,11 @@ def write_updates_to_file(filename, update_list):
                     file_hndl.write('\n')
             except IOError:
                 print(Bcolors.FAIL + "Cannot write to file: " + filename + Bcolors.ENDC)
-                sys.exit(1)
+                return(0)
     except FileNotFoundError:
         print(Bcolors.FAIL + "Cannot open file:" + filename + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
+    return(1)
 
 
 def access_jira(jira_input_path, user_credentials, production):
@@ -249,6 +265,8 @@ def access_jira(jira_input_path, user_credentials, production):
     colorama.init()
     filename = jira_input_path + 'JIRAImportData.txt'
     jira_list = read_jira_info(filename, 1)
+    if not jira_list:
+        return(0)
     # create JIRA class object
     jira_update_list = []
     options = {'server': 'https://agile-jira.pearson.com'}
@@ -256,10 +274,17 @@ def access_jira(jira_input_path, user_credentials, production):
         jira = JIRA(options, basic_auth=(user_credentials[1], user_credentials[2]))
     except Exception as e:
         print(Bcolors.FAIL + "JIRA credentials not valid. Please delete file 'credentials.txt' and restart program" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     print(30 * "-" + Bcolors.OKBLUE + "Creating JIRA Issues" + Bcolors.ENDC + 30 * "-")
-    create_jira_issue(jira, jira_list, jira_update_list, production)
+    retok = create_jira_issue(jira, jira_list, jira_update_list, production)
+    if not retok:
+        return(0)
     print(30 * "-" + Bcolors.OKBLUE + "Retrieving Open JIRA Issues" + Bcolors.ENDC + 30 * "-")
-    get_all_open_jira_issues(jira, user_credentials[1])
+    retok = get_all_open_jira_issues(jira, user_credentials[1])
+    if not retok:
+        return(0)
     filename = jira_input_path + 'JIRAUpdates.txt'
-    write_updates_to_file(filename, jira_update_list)
+    retok = write_updates_to_file(filename, jira_update_list)
+    if not retok:
+        return(0)
+    return(1)

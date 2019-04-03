@@ -24,21 +24,30 @@ import platform
 import sys
 # import logging
 import time
-
 import colorama
 
 
-class Bcolors:
-    """color pallette for print statements"""
-    HEADER = '\033[96m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
+#class Bcolors:
+#    """color palette for print statements"""
+#    HEADER = '\033[96m'
+#    OKBLUE = '\033[94m'
+#    OKGREEN = '\033[92m'
+#    ENDC = '\033[0m'
+#    BOLD = '\033[1m'
+#    UNDERLINE = '\033[4m'
+#    WARNING = '\033[93m'
+#    FAIL = '\033[91m'
 
+class Bcolors:
+    """color palette for print statements"""
+    HEADER = ''
+    OKBLUE = ''
+    OKGREEN = ''
+    ENDC = ''
+    BOLD = ''
+    UNDERLINE = ''
+    WARNING = '-- Warning -- '
+    FAIL = '\n\n ***************************************************   Error  ***************************************************\n'
 
 def read_file_info(filename, header):
     """create a list from the file information. header=0  means no header in file,header=1 means header present"""
@@ -49,12 +58,12 @@ def read_file_info(filename, header):
             for line in reader:
                 filelist.append(line)
             file_hdnl.close()
-            print(Bcolors.HEADER + "{:>3} - Number of entries found in {}".format(len(filelist) - header,
+            print(Bcolors.HEADER + "{:>3} - Entries found in {}".format(len(filelist) - header,
                                                                                   filename) + Bcolors.ENDC)
             return filelist
     except IOError:
-        print(Bcolors.FAIL + "No such file:" + filename + Bcolors.ENDC)
-        sys.exit(1)
+        print(Bcolors.FAIL + " ******** No such file:" + filename + Bcolors.ENDC)
+        return(0)
 
 
 def create_primarymod_suffix(jira_list, jira_map):
@@ -137,7 +146,7 @@ def lookup_primary_entry(jira_list, jira_map, qjt_list, processing_errors):
             # processing_errors.append(f"Primary {entry_jira[get_index_by_column_name('primary', jira_map)]} line {passes} of all JIRA Bugs.txt not found")
             not_found += 1
         row_number += 1
-    print(Bcolors.FAIL + f"{not_found} - Total 'Job #' entries not found" + Bcolors.ENDC)
+    print(Bcolors.WARNING + f"{not_found} - Total 'Job #' entries not found" + Bcolors.ENDC)
     print(Bcolors.OKGREEN + f"{entries_found} - Total 'Job #'' entries found" + Bcolors.ENDC)
     return import_list
 
@@ -201,7 +210,7 @@ def lookup_v42_username(final_import_list, final_map, username_list, username_ma
                                  "Reporter", "Found in Environment", "Found in Phase", "Labels", "Priority",
                                  "Activity", "Custom1", "Custom2", "Custom3", "Custom4", "Custom5", "Edition",
                                  "Job #", "Title"])
-    print(Bcolors.FAIL + f"{not_found} -  Total of Usernames not matched" + Bcolors.ENDC)
+    print(Bcolors.WARNING + f"{not_found} -  Total of Usernames not matched" + Bcolors.ENDC)
     return final_import_list
 
 
@@ -295,7 +304,7 @@ def fill_in_epic_link(final_list, final_map, epic_list, epic_map, processing_err
                 entry[get_index_by_column_name('Job #', final_map)]))
             not_found += 1
         row_number += 1
-    print(Bcolors.FAIL + f"{not_found} -  Total of Epics not found" + Bcolors.ENDC)
+    print(Bcolors.WARNING + f"{not_found} -  Total of Epics not found" + Bcolors.ENDC)
     print(Bcolors.OKGREEN + f"{entries_found} -  Total of Epics found" + Bcolors.ENDC)
     return final_import_list
 
@@ -308,10 +317,11 @@ def write_list_to_file(filename, import_list):
                 file_hndl.writelines('\t'.join(i) + '\n' for i in import_list)
             except IOError:
                 print(Bcolors.FAIL + "Cannot write to file: " + filename + Bcolors.ENDC)
-                sys.exit(1)
+                return(0)
     except FileNotFoundError:
         print(Bcolors.FAIL + "Cannot open file:" + filename + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
+    return(1)
 
 
 def write_errors_to_file(filename, error_list):
@@ -324,10 +334,11 @@ def write_errors_to_file(filename, error_list):
                     file_hndl.write('\n')
             except IOError:
                 print(Bcolors.FAIL + "Cannot write to file: " + filename + Bcolors.ENDC)
-                sys.exit(1)
+                return(0)
     except FileNotFoundError:
         print(Bcolors.FAIL + "Cannot open file:" + filename + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
+    return(1)
 
 
 def validate_final_import_file(final_import_list, final_map):
@@ -383,33 +394,49 @@ def create_jira_import_main(program_input_path, jira_input_path):
     print(Bcolors.HEADER + f" ********** Gathering file information **********" + Bcolors.ENDC)
     filename = program_input_path + 'filenames.txt'
     filename_list = read_file_info(filename, 0)
+    if not filename_list:
+        return(0)
     filename_dict = create_filename_dict(filename_list)
     # get JIRA info
     if len(filename_list) < 2:
         print(Bcolors.FAIL + "Not enough entries in filename.txt , should be 2 entries" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     # get 'All JIRA bugs.txt' file info
     filename = program_input_path + filename_dict.get(0, "")
     jira_list = read_file_info(filename, 1)
+    if not jira_list:
+        return(0)
     create_primarymod_suffix(jira_list, jira_map)
     # get Quality Job Tracker info
     filename = program_input_path + filename_dict.get(1, "")
     qjt_list = read_file_info(filename, 1)
     # get EpicsQUA info and create list
+    if not qjt_list:
+        return (0)
     filename = program_input_path + "EpicsQUA.txt"
     epic_list = read_file_info(filename, 1)
     # get EpicsPM info and append to list
+    if not epic_list:
+        return (0)
     filename = program_input_path + "EpicsPM.txt"
-    epic_list += read_file_info(filename, 1)
+    temp_list = read_file_info(filename, 1)
     # get EpicsPRODN info and append to list
+    if not temp_list:
+        return (0)
+    epic_list += temp_list
     filename = program_input_path + "EpicsPRODN.txt"
-    epic_list += read_file_info(filename, 1)
+    temp_list = read_file_info(filename, 1)
     # get 'UserNames.txt'  info
+    if not temp_list:
+        return (0)
+    epic_list += temp_list
     filename = program_input_path + "UserNames.txt"
     username_list = read_file_info(filename, 0)
+    if not username_list:
+        return (0)
     if len(username_list) < 1:
         print(Bcolors.FAIL + "Need at least 1 entry in UserNames.txt" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     final_import_list = lookup_primary_entry(jira_list, jira_map, qjt_list, processing_errors)
     final_import_list = cleanup_import_list(final_import_list)
     final_import_list = fill_in_static_columns(final_import_list)
@@ -420,7 +447,11 @@ def create_jira_import_main(program_input_path, jira_input_path):
     print(Bcolors.HEADER + f" ********** Writing  JIRAImportData **********" + Bcolors.ENDC)
     print(Bcolors.OKGREEN + f"{len(final_import_list) - 1} - Total entries written to output file" + Bcolors.ENDC)
     filename = jira_input_path + 'JIRAImportData.txt'
-    write_list_to_file(filename, final_import_list)
+    retok = write_list_to_file(filename, final_import_list)
+    if not retok:
+        return (0)
     filename = jira_input_path + 'ProcessingErrors.txt'
-    write_errors_to_file(filename, processing_errors)
-    colorama.deinit()
+    retok = write_errors_to_file(filename, processing_errors)
+    if not retok:
+        return (0)
+    return(1)

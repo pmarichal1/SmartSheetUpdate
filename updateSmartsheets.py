@@ -30,17 +30,27 @@ import smartsheet
 from smartsheet import sheets
 
 
-class Bcolors:
-    """color pallette for print statements"""
-    HEADER = '\033[96m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
+#class Bcolors:
+#    """color palette for print statements"""
+#    HEADER = '\033[96m'
+#    OKBLUE = '\033[94m'
+#    OKGREEN = '\033[92m'
+#    ENDC = '\033[0m'
+#    BOLD = '\033[1m'
+#    UNDERLINE = '\033[4m'
+#    WARNING = '\033[93m'
+#    FAIL = '\033[91m'
 
+class Bcolors:
+    """color palette for print statements"""
+    HEADER = ''
+    OKBLUE = ''
+    OKGREEN = ''
+    ENDC = ''
+    BOLD = ''
+    UNDERLINE = ''
+    WARNING = '-- Warning -- '
+    FAIL = '\n\n ***************************************************   Error  ***************************************************\n'
 
 def get_file_info(filename):
     """# go get the Smartsheet IDs we want to download"""
@@ -48,11 +58,11 @@ def get_file_info(filename):
         ss_hndl = open(filename, 'r')
     except FileNotFoundError:
         print(Bcolors.FAIL + f"File not found {filename}" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     except Exception as e:
         errno, strerror = e.args
         print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {filename}" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     else:
         line_list = ss_hndl.readlines()
         # strip off newlines
@@ -69,11 +79,11 @@ def read_jira_import_file(filename):
         jira_hdnl = open(filename, mode='r')
     except FileNotFoundError:
         print(Bcolors.FAIL + f"File not found {filename}" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     except Exception as e:
         errno, strerror = e.args
         print(Bcolors.FAIL + f"I/O error({errno}): {strerror} {filename}" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     else:
         reader = csv.reader(jira_hdnl, delimiter='\t')
         jira_list = list(map(tuple, reader))
@@ -158,10 +168,11 @@ def write_updates_to_file(filename, update_list):
                     file_hndl.write('\n')
             except IOError:
                 print(Bcolors.FAIL + "Cannot write to file: " + filename + Bcolors.ENDC)
-                sys.exit(1)
+                return(0)
     except FileNotFoundError:
         print(Bcolors.FAIL + "Cannot open file:" + filename + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
+    return(1)
 
 
 def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
@@ -188,12 +199,16 @@ def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
     # get a list of Smartsheet IDs we will use to update sheets
     filename = program_input_path + "smartsheetUpdateIDs.txt"
     ids_list = get_file_info(filename)
+    if not ids_list:
+        return(0)
     if len(ids_list) < 3:
         print(Bcolors.FAIL + "Not enough entries in smartsheetUpdateIDs.txt , should be 3 entries" + Bcolors.ENDC)
-        sys.exit(1)
+        return(0)
     # let's get the data from the JIRA import file so we can update the Smartsheets
     filename = jira_input_path + 'JIRAImportData.txt'
     jira_list = read_jira_import_file(filename)
+    if not jira_list:
+        return(0)
     # create a dictionary so we can keep track of of the JIRA entries we found a match for
     jira_dict = {}
     # keep track of row and sheetname for empty cells
@@ -210,7 +225,7 @@ def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
             sheet = ss_client.Sheets.get_sheet(sheet_id)
         except Exception as e:
             print("Possible invalid sheet ID in smartsheetUpdateIDs.txt")
-            sys.exit(1)
+            return(0)
         print(Bcolors.OKGREEN + f"Checking Smartsheet {sheet.name}" + Bcolors.ENDC)
         # Build column map for later reference - translates column names to column id
         for column in sheet.columns:
@@ -247,7 +262,7 @@ def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
                         ss_update_list.append("Duplicate found in JIRA import file row " + str(
                             jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'" + " row " + str(
                             row.row_number))
-                        print(Bcolors.FAIL + "Duplicate found in JIRA import file row " + str(
+                        print(Bcolors.WARNING + "Duplicate found in JIRA import file row " + str(
                             jira_entry_count + 1) + " in Smartsheet " + "'" + sheet.name + "'" + " row " + str(
                             row.row_number) + Bcolors.ENDC)
                     jira_dict[jira_entry_count] = 'true'
@@ -281,13 +296,13 @@ def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
             print(Bcolors.FAIL + "Failed to update Smartsheet " + sheet.name + " after 3 retries" + Bcolors.ENDC)
     dict_count = 0
     # now that we are done, print out all row that are false indicating they were not updated
-    print(30 * "-" + Bcolors.OKBLUE + "Reporting Cells not Updated" + Bcolors.ENDC + 30 * "-")
+    print(30 * "-" + Bcolors.WARNING + "Reporting Cells not Updated" + Bcolors.ENDC + 30 * "-")
     for dict_index, dict_entry in jira_dict.items():
         if jira_dict[dict_index] == 'false':
             dict_count += 1
             print(Bcolors.WARNING + "JIRA import file row " + "'" +
                   str(dict_index + 1) + "'" + " not found or already checked in Smartsheets" + Bcolors.ENDC)
-    print(30 * "-" + Bcolors.OKBLUE + "Reporting Empty Cells" + Bcolors.ENDC + 30 * "-")
+    print(30 * "-" + Bcolors.WARNING + "Reporting Empty Cells" + Bcolors.ENDC + 30 * "-")
     for key, val in empty_cell.items():
         print(Bcolors.WARNING + f"Smartsheet '{key[1]}' empty cell in row '{key[0]}'" + Bcolors.ENDC)
     print(30 * "-" + Bcolors.OKBLUE + "Finished Updating Smartsheets" + Bcolors.ENDC + 30 * "-")
@@ -295,4 +310,4 @@ def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
     print(Bcolors.OKGREEN + "Total Smartsheet Rows Updated     = " + str(matches) + Bcolors.ENDC)
     filename = jira_input_path + 'SmartsheetUpdates.txt'
     write_updates_to_file(filename, ss_update_list)
-    colorama.deinit()
+    return(1)
