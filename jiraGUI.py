@@ -19,7 +19,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from tkinter import Tk, Label, Button, messagebox, ttk, HORIZONTAL, Frame, PhotoImage, Entry, LabelFrame,Text, Scrollbar, END
+#from tkinter import Tk, Label, Button, messagebox, ttk, HORIZONTAL, Frame, PhotoImage, Entry, LabelFrame,Text, Scrollbar, END
+from tkinter import *
+from tkinter import ttk, messagebox
 import threading
 import base64
 import platform
@@ -46,7 +48,7 @@ from updateSmartsheets import updateSmartsheetMain
 #    WARNING = '\033[93m'
 #    FAIL = '\033[91m'
 
-VERSION = "JIRA Automation V5.9.0"
+VERSION = "JIRA Automation V5.10.0"
 
 class Bcolors:
     """color palette for print statements"""
@@ -134,7 +136,6 @@ class Std_redirector(object):
     def write(self,string):
         self.widget.insert(END,string)
         self.widget.see(END)
-
     def flush(self):
         pass
 
@@ -201,149 +202,183 @@ class MySPiGUI:
         self.master.tk.call('wm', 'iconphoto', self.master._w, PhotoImage(file=self.click_png_path))
         master.title(VERSION)
 
-        self.image = PhotoImage(file=self.spi_png_path)
-        self.label = Label(image=self.image)
-        self.label.pack()
+        self.canvas = Canvas(master, height=1100, width=1000, bg='#cccccc')
+        self.canvas.pack()
 
-        self.frame1 = Frame(master, highlightbackground="black", highlightcolor="black", highlightthickness=4, bd= 2)
-        self.frame1.pack()
+        self.frame1 = Frame(master, highlightbackground="black", highlightthickness=4, bd=2)
+        self.frame1.place(relx=0.5, rely=0.02, relwidth=0.95, relheight=0.47, anchor='n')
+
+        self.image1 = PhotoImage(file=self.spi_png_path)
+        self.label1 = Label(self.frame1, image=self.image1)
+        self.label1.place(relx=0, rely=0.05, relwidth=1, relheight=0.2, anchor='nw')
+
         # bg='#e6f2ff',
-        self.label = Label(self.frame1, width=30, font=("Calibri", 15), fg='blue', text="Click below to make a selection")
-        self.label.pack()
+        self.label1A = Label(self.frame1, font=("Calibri", 15), fg='orange',
+                             text="Click below to make a selection")
+        self.label1A.place(relx=.5, rely=0.3, relwidth=1, relheight=0.1, anchor='n')
 
-        self.gen_button = Button(self.frame1, highlightthickness=5, width=40, font=("Calibri", 16), text="Step 1 - Download and Generate JIRA Import File       ", fg='black', command=self.func1)
-        self.gen_button.pack()
-        self.gen_button.bind("<Enter>", lambda event: self.gen_button.configure(fg="orange"))
-        self.gen_button.bind("<Leave>", lambda event: self.gen_button.configure(fg="black"))
+        self.gen_button1 = Button(self.frame1, highlightthickness=4, font=("Calibri", 16),
+                                  text="Step 1 - Download and Generate JIRA Import File       ", fg='black',
+                                  command=self.func1)
+        self.gen_button1.place(relx=.5, rely=0.4, relwidth=.75, relheight=0.1, anchor='n')
+        self.gen_button1.bind("<Enter>", lambda event: self.gen_button1.configure(fg="orange"))
+        self.gen_button1.bind("<Leave>", lambda event: self.gen_button1.configure(fg="black"))
 
-        self.create_button = Button(self.frame1, highlightthickness=5, width=40, font=("Calibri", 16), text="Step 2 - Create Issues and Update Workflows in JIRA", fg='black', command=self.func2)
-        self.create_button.pack()
-        self.create_button.bind("<Enter>", lambda event: self.create_button.configure(fg="orange"))
-        self.create_button.bind("<Leave>", lambda event: self.create_button.configure(fg="black"))
+        self.create_button1 = Button(self.frame1, highlightthickness=4, font=("Calibri", 16),
+                                     text="Step 2 - Create Issues and Update Workflows in JIRA", fg='black',
+                                     command=self.func2)
+        self.create_button1.place(relx=.5, rely=0.5, relwidth=.75, relheight=0.1, anchor='n')
+        self.create_button1.bind("<Enter>", lambda event: self.create_button1.configure(fg="orange"))
+        self.create_button1.bind("<Leave>", lambda event: self.create_button1.configure(fg="black"))
 
-        self.update_button = Button(self.frame1, highlightthickness=5, width=40, font=("Calibri", 16), text="Step 3 - Update Smartsheets with Uploaded JIRA Info", fg='black', command=self.func3)
-        self.update_button.pack()
-        self.update_button.bind("<Enter>", lambda event: self.update_button.configure(fg="orange"))
-        self.update_button.bind("<Leave>", lambda event: self.update_button.configure(fg="black"))
+        self.update_button1 = Button(self.frame1, highlightthickness=4,  font=("Calibri", 16),
+                                     text="Step 3 - Update Smartsheets with Uploaded JIRA Info", fg='black',
+                                     command=self.func3)
+        self.update_button1.place(relx=.5, rely=0.6, relwidth=.75, relheight=0.1, anchor='n')
+        self.update_button1.bind("<Enter>", lambda event: self.update_button1.configure(fg="orange"))
+        self.update_button1.bind("<Leave>", lambda event: self.update_button1.configure(fg="black"))
 
-        self.optional_button = Button(self.frame1, highlightthickness=5, font=("Calibri", 16), text="(Optional) Update Local Epic Lookup Files", fg='gray', command=self.func4)
-        self.optional_button.pack()
-        self.optional_button.bind("<Enter>", lambda event: self.optional_button.configure(fg="orange"))
-        self.optional_button.bind("<Leave>", lambda event: self.optional_button.configure(fg="black"))
+        self.optional_button1 = Button(self.frame1, highlightthickness=4,  font=("Calibri", 16),
+                                     text="Optional - Update Local Epic Files", fg='black',
+                                     command=self.func4)
+        self.optional_button1.place(relx=.5, rely=0.7, relwidth=.75, relheight=0.1, anchor='n')
+        self.optional_button1.bind("<Enter>", lambda event: self.optional_button1.configure(fg="orange"))
+        self.optional_button1.bind("<Leave>", lambda event: self.optional_button1.configure(fg="black"))
 
-        self.progress = ttk.Progressbar(self.frame1, orient=HORIZONTAL, length=450, mode='determinate')
-        self.progress.pack()
+        self.progress1 = ttk.Progressbar(self.frame1, orient=HORIZONTAL, mode='determinate')
+        self.progress1.place(relx=.5, rely=0.80, relwidth=.74, relheight=0.04, anchor='n')
 
-        self.close_button = Button(self.frame1, highlightthickness=5, width=10, text="Quit", fg='black', command=master.quit)
-        self.close_button.pack()
-        self.close_button.bind("<Enter>", lambda event: self.close_button.configure(fg="red"))
-        self.close_button.bind("<Leave>", lambda event: self.close_button.configure(fg="black"))
+        self.close_button1 = Button(self.frame1, text="Quit", highlightthickness=4, font=("Calibri", 16),
+                                    command=master.quit)
+        self.close_button1.place(relx=.3, rely=0.85, relwidth=.35, relheight=0.1, anchor='n')
+        self.close_button1.bind("<Enter>", lambda event: self.close_button1.configure(fg="red"))
+        self.close_button1.bind("<Leave>", lambda event: self.close_button1.configure(fg="black"))
+
+        self.info_button1 = Button(self.frame1, text="Info", highlightthickness=4, font=("Calibri", 16),
+                                    command=self.info)
+        self.info_button1.place(relx=.7, rely=0.85, relwidth=.35, relheight=0.1, anchor='n')
+        self.info_button1.bind("<Enter>", lambda event: self.info_button1.configure(fg="orange"))
+        self.info_button1.bind("<Leave>", lambda event: self.info_button1.configure(fg="black"))
 
         # create new frame that will contain output text frame with scrollbar
-        self.frame2 = Frame(master,  highlightbackground="black", highlightcolor="black", highlightthickness=4, bd= 2)
-        self.frame2.pack(expand=1)
+        self.frame2 = Frame(master, highlightbackground="black", highlightcolor="black", highlightthickness=4)
+        self.frame2.place(relx=0.5, rely=0.5, relwidth=.95, relheight=0.48, anchor='n')
 
         # bg='#e6f2ff',
-        self.label = Label(self.frame2, width=90, font=("Calibri", 15), fg='blue', text="Text Output")
-        self.label.pack(expand=1)
-
+        self.label2 = Label(self.frame2, font=("Calibri", 15), fg='orange', text="Program Output")
+        self.label2.place(relx=0.5, rely=0, relwidth=.9, relheight=0.05, anchor='n')
+        #
         # create a Scrollbar and associate it with txt
-        self.scrollb = Scrollbar(self.frame2)
-        self.scrollb.pack(side='right', fill='y')
+        self.scrollb2 = Scrollbar(self.frame2)
+        self.scrollb2.pack(side='right', fill='y')
 
         # create a Text widget
-        self.txt = Text(self.frame2, width=115, font=("Calibri", 12), borderwidth=3, wrap='word', undo=True, yscrollcommand=self.scrollb.set)
-        self.txt.pack(side='left', fill='both')
-        self.scrollb.config(command=self.txt.yview)
+        self.txt2 = Text(self.frame2, font=("Calibri", 12), borderwidth=3, wrap='word', undo=True,
+                         yscrollcommand=self.scrollb2.set)
+        self.txt2.place(relx=0.01, rely=0.07, relwidth=.95, relheight=0.9)
+        self.scrollb2.config(command=self.txt2.yview)
 
     def func1(self):
         """ handle step1 functions """
         def step1_thread():
             retok = getSmartsheetMain(self.programinput_path, self.user_credentials)
             if not retok:
-                self.progress.stop()
-                self.close_button['state'] = 'normal'
+                self.progress1.stop()
+                self.close_button1['state'] = 'normal'
+                messagebox.showerror("Error", "Check Program Output for Error")
                 return(0)
             retok = create_jira_import_main(self.programinput_path, self.jirainput_path)
             if not retok:
-                self.progress.stop()
-                self.close_button['state'] = 'normal'
+                self.progress1.stop()
+                self.close_button1['state'] = 'normal'
+                messagebox.showerror("Error", "Check Program Output for Error")
                 return(0)
             messagebox.showinfo("Information", "Step 1 Completed Successfully")
-            self.progress.stop()
+            self.progress1.stop()
             self.enable_buttons()
 
         threading.Thread(target=step1_thread).start()
         self.disable_buttons()
-        self.progress.start(100)
+        self.progress1.start(100)
 
     def func2(self):
         """ handle step2 functions """
         def step2_thread():
             retok = access_jira(self.jirainput_path, self.user_credentials, self.production)
             if not retok:
-                self.progress.stop()
-                self.close_button['state'] = 'normal'
+                self.progress1.stop()
+                self.close_button1['state'] = 'normal'
+                messagebox.showerror("Error", "Check Program Output for Error")
                 return(0)
             messagebox.showinfo("", "Step 2 Completed Successfully")
-            self.progress.stop()
+            self.progress1.stop()
             self.enable_buttons()
 
         result = messagebox.askyesno("JIRA Update", "Are you sure you want to update JIRA?")
         if result is True:
             threading.Thread(target=step2_thread).start()
             self.disable_buttons()
-            self.progress.start(100)
+            self.progress1.start(100)
 
     def func3(self):
         """ handle step3 functions """
         def step3_thread():
             retok = updateSmartsheetMain(self.programinput_path, self.jirainput_path, self.user_credentials)
             if not retok:
-                self.progress.stop()
-                self.close_button['state'] = 'normal'
+                self.progress1.stop()
+                self.close_button1['state'] = 'normal'
+                messagebox.showerror("Error", "Check Program Output for Error")
                 return(0)
             messagebox.showinfo("", "Step 3 Completed Successfully")
-            self.progress.stop()
+            self.progress1.stop()
             self.enable_buttons()
 
         result = messagebox.askyesno("JIRA Update", "Are you sure you want to update Smartsheets?")
         if result is True:
             threading.Thread(target=step3_thread).start()
             self.disable_buttons()
-            self.progress.start(100)
+            self.progress1.start(100)
 
     def func4(self):
         """ handle step4 functions """
         def step4_thread():
             retok = get_all_jira_epics(self.programinput_path, self.user_credentials)
             if not retok:
-                self.progress.stop()
-                self.close_button['state'] = 'normal'
+                self.progress1.stop()
+                self.close_button1['state'] = 'normal'
+                messagebox.showerror("Error", "Check Program Output for Error")
                 return(0)
             messagebox.showinfo("", "Optional Step Completed Successfully")
-            self.progress.stop()
+            self.progress1.stop()
             self.enable_buttons()
 
         threading.Thread(target=step4_thread).start()
         self.disable_buttons()
-        self.progress.start(100)
+        self.progress1.start(100)
+
+    def info(self):
+        print("\n\nStep 1 will download Smartsheet Reports specified in 'getSmartsheetIDs.txt' file.")
+        print("   It then parses downloaded files and generates a new file containing all fields required to created a JIRA issue.\n")
+        print("Step 2 will create a JIRA issue for each entry created in Step1 and move JIRA workflow to Fixed and Closed.\n")
+        print("Step 3 will update 'Input to JIRA' checkbox in each individual Smartsheet Sheet specified in 'getSmartsheetIDs.txt' file\n")
+        print("(Optional) step allows users to refresh Epic information downloaded from JIRA used in Step 1")
+
 
     def disable_buttons(self):
         """ make sure to disable button while processing """
-        self.gen_button['state'] = 'disabled'
-        self.create_button['state'] = 'disabled'
-        self.update_button['state'] = 'disabled'
-        self.optional_button['state'] = 'disabled'
-        self.close_button['state'] = 'disabled'
+        self.gen_button1['state'] = 'disabled'
+        self.create_button1['state'] = 'disabled'
+        self.update_button1['state'] = 'disabled'
+        self.optional_button1['state'] = 'disabled'
+        self.close_button1['state'] = 'disabled'
 
     def enable_buttons(self):
         """ make sure to enabled button after processing """
-        self.gen_button['state'] = 'normal'
-        self.create_button['state'] = 'normal'
-        self.update_button['state'] = 'normal'
-        self.optional_button['state'] = 'normal'
-        self.close_button['state'] = 'normal'
+        self.gen_button1['state'] = 'normal'
+        self.create_button1['state'] = 'normal'
+        self.update_button1['state'] = 'normal'
+        self.optional_button1['state'] = 'normal'
+        self.close_button1['state'] = 'normal'
 
 
 def main():
@@ -381,7 +416,7 @@ def main():
     root.resizable(0, 0)  # Don't allow resizing in the x or y direction
     my_gui = MySPiGUI(root, user_credentials, param_list)
     # redirecting output from script to Tkinter Text window
-    sys.stdout = Std_redirector(my_gui.txt)
+    sys.stdout = Std_redirector(my_gui.txt2)
     root.mainloop()
     # To stop redirecting stdout:
     sys.stdout = sys.__stdout__

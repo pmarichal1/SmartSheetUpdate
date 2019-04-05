@@ -197,6 +197,7 @@ def updateSmartsheetMain(program_input_path, jira_input_path, user_credentials):
     # The API identifies columns by Id,
     # but it's more convenient to refer to column names. Store a map here
     # get a list of Smartsheet IDs we will use to update sheets
+    print(30 * "-" + Bcolors.OKBLUE + " Updating Smartsheets" + Bcolors.ENDC + 30 * "-")
     filename = program_input_path + "smartsheetUpdateIDs.txt"
     ids_list = get_file_info(filename)
     if not ids_list:

@@ -178,7 +178,7 @@ def get_all_open_jira_issues(jira, username):
 
 def get_all_jira_epics(programinput_path, user_credentials):
     """ update all Epic files with latest information from JIRA """
-    print(30 * "-" + Bcolors.OKBLUE + "Retrieving Epics" + Bcolors.ENDC + 30 * "-")
+    print(30 * "-" + Bcolors.OKBLUE + "Retrieving Epic Files" + Bcolors.ENDC + 30 * "-")
     options = {'server': 'https://agile-jira.pearson.com'}
     try:
         jira = JIRA(options, basic_auth=(user_credentials[1], user_credentials[2]))
